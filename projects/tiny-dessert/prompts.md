@@ -20,10 +20,10 @@ Photoreal high-end food commercial. Bright, airy white tabletop set by a large w
 
 ### [EINAT]
 
-ממלאים את הסוגריים לפי התמונות שלך:
+לפי התמונות שלך, עם השיער שבחרת (בלונד עד הכתפיים):
 
 ```
-EINAT: a woman in her [AGE RANGE], [SKIN TONE] skin, [HAIR COLOR] [HAIR LENGTH] hair tied back in a [low ponytail / bun], [DISTINCTIVE FEATURES, e.g. glasses, freckles, earrings]. She wears a fitted solid deep-turquoise top with sleeves rolled to the elbow, high-waisted cream trousers and white sneakers. Same face, hair and outfit in every shot.
+EINAT: a woman with shoulder-length wavy blonde hair with darker roots, worn loose, dark defined eyebrows, hazel-brown eyes and warm tan skin. She wears a fitted solid deep-turquoise top with sleeves rolled to the elbow, high-waisted cream trousers and white sneakers. Same face, hair and outfit in every shot.
 ```
 
 ### [MINI]
