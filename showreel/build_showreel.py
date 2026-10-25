@@ -20,7 +20,7 @@ NINE_SIXTEEN = "crop='min(iw,ih*9/16)':'min(ih,iw*16/9)'"
 # kind, file, (source in, source out) or (start zoom, zoom per frame), timeline start, timeline end, mode, pre-filter
 SHOTS = [
     ("video", "dragon.mp4", (10.50, 14.60), 0.000, 2.351, "fill", ""),             # hook: push-in to the glowing eye
-    ("video", "0c915f0f.mp4", (0.50, 2.45), 2.351, 4.301, "fill", ""),             # hero walk
+    ("video", "rose.mp4", (2.50, 7.00), 2.351, 4.301, "fill", NINE_SIXTEEN + ","),  # black & white bursts into red roses
     ("video", "310bfa44.mp4", (0.70, 5.30), 4.301, 6.252, "fill", ""),             # birthday glow-up
     ("video", "c3ed9f72.mp4", (1.40, 2.60), 6.252, 7.227, "fill", ""),             # wedding, golden hour
     ("video", "parents_wedding.mp4", (4.20, 5.60), 7.227, 8.202, "fill", "crop=607:1080:654:0,"),
@@ -29,7 +29,7 @@ SHOTS = [
     ("video", "ae5eddbb.mp4", (1.20, 3.60), 11.128, 12.103, "fill", ""),           # AC ad: the cheer
     ("image", "cloud.jpg", (1.0, 0.004), 12.103, 12.591, "fill", NINE_SIXTEEN + ","),
     ("image", "warrior.jpg", (1.0, 0.004), 12.591, 13.079, "fill", NINE_SIXTEEN + ","),
-    ("image", "sunglasses.jpg", (1.0, 0.004), 13.079, 13.566, "fill", NINE_SIXTEEN + ","),
+    ("image", "sunflower_frame.jpg", (1.0, 0.004), 13.079, 13.566, "fill", "crop=590:1050:478:140,"),  # still from 3be36905, FB frame cropped off
     ("image", "earth.jpg", (1.0, 0.004), 13.566, 14.054, "fill", NINE_SIXTEEN + ","),
     ("video", "4c91d2bb.mp4", (5.50, 10.00), 14.054, 16.004, "fill", "crop=779:1385:254:95,"),  # poster comes alive
     ("image", "studio_couple.jpg", (1.06, -0.0005), 16.004, END, "fill", "crop=631:1122:410:0,"),  # end: pull back to the full sign
@@ -39,8 +39,8 @@ SHOTS = [
 CAPTIONS = [
     ("hook1", 0.12, 2.351, 330, True),
     ("hook2", 0.60, 2.351, 500, True),
-    ("movie1", 2.40, 4.301, 330, True),
-    ("movie2", 2.70, 4.301, 520, True),
+    ("movie1", 2.40, 4.301, 1180, True),  # low: the rose shot's face is up top
+    ("movie2", 2.70, 4.301, 1360, True),
     ("birthday", 4.35, 6.252, 340, True),
     ("wedding", 6.30, 8.202, 340, True),
     ("business", 8.25, 12.103, 330, True),

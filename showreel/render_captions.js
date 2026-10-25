@@ -42,7 +42,7 @@ const sticker = (html, color, size, rot) => {
 };
 
 const captions = {
-  hook1: sticker('יש אנשים שעושים סרטון', 'yellow', 76, -3),
+  hook1: sticker('יש אנשים שעושים סרט', 'yellow', 76, -3),
   hook2: sticker('מהחיים שלהם...', 'white', 76, 2),
   movie1: sticker('ואני עושה מהחיים שלהם', 'cyan', 68, 2),
   movie2: sticker(`סרט! ${e('🎬')}`, 'pink', 140, -4),
