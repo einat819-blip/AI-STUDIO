@@ -35,23 +35,24 @@ SHOTS = [
     ("image", "studio_couple.jpg", (1.06, -0.0005), 16.004, END, "fill", "crop=631:1122:410:0,"),  # end: pull back to the full sign
 ]
 
-# png, start, end, vertical centre (None = full-frame overlay), pop-in animation
+# png, start, end, vertical centre (None = full-frame overlay), pop-in animation.
+# Centres stay within y 420-1500: inside the 4:5 crop Facebook shows in the feed and clear of the faces.
 CAPTIONS = [
-    ("hook1", 0.12, 2.351, 330, True),
-    ("hook2", 0.60, 2.351, 500, True),
+    ("hook1", 0.12, 2.351, 1330, True),
+    ("hook2", 0.60, 2.351, 1480, True),
     ("movie1", 2.40, 4.301, 1180, True),  # low: the rose shot's face is up top
     ("movie2", 2.70, 4.301, 1360, True),
-    ("birthday", 4.35, 6.252, 340, True),
-    ("wedding", 6.30, 8.202, 340, True),
-    ("business", 8.25, 12.103, 330, True),
-    ("photos", 12.15, 14.054, 340, True),
-    ("alive", 14.10, 16.004, 340, True),
+    ("birthday", 4.35, 6.252, 1000, True),  # on the glowing chest, between face and cake
+    ("wedding", 6.30, 8.202, 1450, True),
+    ("business", 8.25, 12.103, 1450, True),
+    ("photos", 12.15, 14.054, 1450, True),
+    ("alive", 14.10, 16.004, 1450, True),
     ("tag", 2.351, 16.004, 150, False),
     ("end_shade", 16.004, END, None, False),
-    ("end_kicker", 16.25, END, 1100, True),
-    ("end_slogan", 16.55, END, 1245, True),
-    ("end_phone", 16.85, END, 1395, True),
-    ("end_follow", 17.15, END, 1530, True),
+    ("end_kicker", 16.25, END, 1060, True),
+    ("end_slogan", 16.55, END, 1200, True),
+    ("end_phone", 16.85, END, 1345, True),
+    ("end_follow", 17.15, END, 1475, True),
 ]
 FLASHES = [2.351, 16.004]
 
