@@ -36,81 +36,90 @@ def hold(n, count):
 
 
 # --------------------------------------------------------- shawarma ad ----
+# Shot order and the hook take are locked (approved). Freezes are long enough
+# to READ the caption that lands on them.
 AD = [
-    # 0.00 HOOK (2.5 s): grandpa charging on the tractor, dust, shocked face;
-    #      ~1.1 s he slams the brakes, the tractor lurches and halts (src 11-57)
+    # 0.00 HOOK: grandpa charging on the tractor, dust; ~1.1 s he slams the
+    #      brakes, the tractor lurches and halts (src 11-57)
     dict(name="hook_drive", src="tractor_new", frames=rng(11, 57), grade="village"),
-    # 1.96 FREEZE on the halt (src 58: tractor stopped, eyes to the side) + thump
+    # 1.96 FREEZE on the halt (src 58) + thump
     dict(name="hook_freeze", src="tractor_new", frames=hold(58, 13), grade="village", freeze=True),
-    # 2.50 soccer (ball rising) -> 2.83 FREEZE ball in the air
+    # 2.50 soccer (ball rising) -> 2.83 FREEZE ball in the air + "אפילו הזמן עצר"
     dict(name="soccer_kick", src="soccer", frames=rng(9, 16), grade="village"),
-    dict(name="soccer_freeze", src="soccer", frames=hold(17, 12), grade="village", freeze=True),
-    # 3.33 coffee pour -> 3.67 FREEZE stream in the air, clock stops, silence
+    dict(name="soccer_freeze", src="soccer", frames=hold(17, 22), grade="village", freeze=True),
+    # 3.75 coffee pour -> 4.08 FREEZE stream in the air + "לראות מה קרה..."
     dict(name="coffee_pour", src="coffee", frames=rng(18, 25), grade="village"),
-    dict(name="coffee_freeze", src="coffee", frames=hold(26, 20), grade="village", freeze=True),
-    # 4.50 HARD CUT on the music hit: the spit, knife at work
+    dict(name="coffee_freeze", src="coffee", frames=hold(26, 24), grade="village", freeze=True),
+    # 5.08 HARD CUT on the music burst: the spit + "שווארמה בכפר נפתחה!"
     dict(name="spit", src="food", frames=rng(0, 23), grade="food"),
-    # 5.50 punch-in on the hot meat being sliced (cut on action)
+    # 6.08 punch-in on the hot meat being sliced (cut on action)
     dict(name="cutting", src="food", frames=rng(36, 47), grade="food", zoom=1.18, center=(0.52, 0.44)),
-    # 6.00 meat slides from the scoop into the pita (tight: hides the heart-shaped pita)
+    # 6.58 meat slides from the scoop into the pita (tight: hides the heart-shaped pita)
     dict(name="into_pita", src="food", frames=rng(105, 116), grade="food", zoom=1.32, center=(0.47, 0.36)),
-    # 6.50 tahini pour on the loaded pita
-    dict(name="tahini", src="food", frames=rng(164, 193), grade="food"),
-    # 7.75 the ready pita, hero slow-mo (src 215-240 stretched x1.6 with motion interpolation)
-    dict(name="hero", src="food", slowmo=(215, 240, 42), grade="food"),
+    # 7.08 tahini pour on the loaded pita (no caption on it)
+    dict(name="tahini", src="food", frames=rng(166, 189), grade="food"),
+    # 8.08 the ready pita, slow-mo; "עכשיו כולם בדרך!" sits on the dark apron above it
+    dict(name="hero", src="food", slowmo=(215, 229, 24), grade="food"),
+    # 9.08 END CARD: same shot continues blurred behind a big logo + closing line
+    dict(name="endcard", src="food", slowmo=(229, 240, 42), grade="food", endcard=True),
 ]
 
 AD_TEXT = [
-    dict(id="hook", start=24, end=59, y=1130, size=132, font="heebo", anim="slam", stagger=2, lines=[
-        [("מה ", CREAM), ("עצר", ORANGE), (" את", CREAM)],
-        [("כל המושב?!", CREAM)],
-    ]),
-    dict(id="reveal", start=108, end=131, y=1300, size=112, font="heebo", anim="slam", lines=[
-        [("חוץ ", CREAM), ("מהשווארמה.", GOLD)],
-    ]),
+    dict(id="hook", start=26, end=56, y=1130, size=132, font="heebo", anim="slam", stagger=2, exit="shrink",
+         lines=[[("מה ", CREAM), ("עצר", ORANGE), (" את", CREAM)], [("כל המושב?!", CREAM)]]),
+    dict(id="time1", start=68, end=89, y=1450, size=120, font="heebo", anim="slam",
+         lines=[[("אפילו הזמן ", CREAM), ("עצר", ORANGE)]]),
+    dict(id="time2", start=98, end=121, y=1450, size=120, font="heebo", anim="slam",
+         lines=[[("לראות מה קרה...", CREAM)]]),
+    dict(id="opened1", start=122, end=145, y=1150, size=124, font="heebo", anim="slam",
+         lines=[[("שווארמה בכפר", CREAM)]]),
+    dict(id="opened2", start=125, end=145, y=1355, size=210, font="heebo", anim="punch",
+         lines=[[("נפתחה!", ORANGE)]]),
+    dict(id="on_the_way", start=194, end=217, y=300, size=104, font="heebo", anim="slam",
+         lines=[[("עכשיו כולם בדרך!", CREAM)]]),
+    dict(id="closing", start=224, end=259, y=1385, size=96, font="heebo", anim="rise",
+         lines=[[("יש דברים ששווה", CREAM)], [("לעצור בשבילם.", CREAM)]]),
 ]
 
-CLIENT_LOGO = dict(start=192, d=600, y=470)  # 8.00 s, on the beat
+CLIENT_ENDCARD = dict(start=218, d=780, y=800)  # big badge, on the beat
 
 # ------------------------------------------------------ studio twist -------
-TWIST_START = 228  # 9.50 s
-TWIST = dict(
-    freeze_end=263,          # frozen ad frame (dimmed) 9.50 - 11.0
-    wipe=(258, 264),         # colour wipe into the studio palette
-    studio_end=360,          # 15.0 s
-)
+TWIST_START = 260  # client cut ends here (10.83 s)
+TW = TWIST_START
+TWIST = dict(freeze_end=TW + 35, wipe=(TW + 30, TW + 36), studio_end=TW + 132)
 TWIST_TEXT = [
-    dict(id="if_stopped", start=228, end=245, y=900, size=150, font="rubik", anim="slam", bg="freeze",
+    dict(id="if_stopped", start=TW, end=TW + 17, y=900, size=150, font="rubik", anim="slam", bg="freeze",
          lines=[[("אם עצרתם...", WHITE)]]),
-    dict(id="it_worked", start=246, end=263, y=900, size=250, font="rubik", anim="punch", bg="freeze",
+    dict(id="it_worked", start=TW + 18, end=TW + 35, y=900, size=250, font="rubik", anim="punch", bg="freeze",
          lines=[[("זה עבד.", YELLOW)]]),
-    dict(id="q1", start=264, end=287, y=820, size=140, font="rubik", anim="pop", exit="shrink",
+    dict(id="q1", start=TW + 36, end=TW + 59, y=820, size=140, font="rubik", anim="pop", exit="shrink",
          lines=[[("בעלי עסקים,", WHITE)]]),
-    dict(id="q2", start=276, end=287, y=1060, size=124, font="rubik", anim="pop", exit="shrink",
+    dict(id="q2", start=TW + 48, end=TW + 59, y=1060, size=124, font="rubik", anim="pop", exit="shrink",
          lines=[[("רוצים ", WHITE), ("שיזכרו", YELLOW)], [("אתכם?", WHITE)]]),
-    dict(id="tagline", start=294, end=359, y=1015, size=96, font="rubik", anim="rise",
+    dict(id="tagline", start=TW + 66, end=TW + 131, y=1015, size=96, font="rubik", anim="rise",
          lines=[[("פרסומות", WHITE)], [("שלא גוללים עליהן.", WHITE)]]),
-    dict(id="cta", start=306, end=359, y=1235, size=104, font="rubik", anim="pop",
+    dict(id="cta", start=TW + 78, end=TW + 131, y=1235, size=104, font="rubik", anim="pop",
          lines=[[("שלחו הודעה", YELLOW)]]),
 ]
-STUDIO_LOGO = dict(start=288, y=650, width=860)
-# contact line under the CTA: Einat's mobile for studio enquiries
-HANDLE = dict(text="052-2858774", start=309, y=1365, size=84)
-CTA_ICON = dict(start=306, wiggles=(318, 336))
+STUDIO_LOGO = dict(start=TW + 60, y=650, width=860)
+# contact line under the CTA (spec: the Instagram handle; --contact can swap in the phone)
+HANDLE = dict(text="@ainati_studios", start=TW + 81, y=1360, size=80)
+PHONE = "052-2858774"
+CTA_ICON = dict(start=TW + 78, wiggles=(TW + 90, TW + 108))
 
 SYNC_CLIENT = dict(
-    brake=26, freeze_tractor=47, cut_soccer=60, freeze_soccer=68, cut_coffee=80, freeze_coffee=88,
-    drop=108, knife_wide=120, cutting=132, into_pita=144, tahini=156, hero=186,
-    logo=192, final_hit=216, end=228,
+    brake=26, hook_text=26, freeze_tractor=47, cut_soccer=60, freeze_soccer=68, cut_coffee=90,
+    freeze_coffee=98, drop=122, knife_wide=134, cutting=146, into_pita=158, tahini=170, hero=194,
+    on_the_way=194, logo=218, closing=224, final_hit=242, end=260,
 )
-SYNC_STUDIO = dict(SYNC_CLIENT, final_hit=None, end=360,
-                   twist=228, it_worked=246, riser=252, wipe=258, studio_drop=264,
-                   q2=276, studio_logo=288, tagline=294, cta=306, wiggles=(318, 336),
-                   studio_final=348)
+SYNC_STUDIO = dict(SYNC_CLIENT, final_hit=None, end=TW + 132,
+                   twist=TW, it_worked=TW + 18, riser=TW + 24, wipe=TW + 30, studio_drop=TW + 36,
+                   q2=TW + 48, studio_logo=TW + 60, tagline=TW + 66, cta=TW + 78,
+                   wiggles=(TW + 90, TW + 108), studio_final=TW + 120)
 
 VERSIONS = {
-    "client": dict(out="Shawarma_Bakfar_Final.mp4", frames=228, sync=SYNC_CLIENT, twist=False),
-    "studio": dict(out="AI_NATI_Shawarma_Showreel.mp4", frames=360, sync=SYNC_STUDIO, twist=True),
+    "client": dict(out="Shawarma_Bakfar_Final.mp4", frames=TW, sync=SYNC_CLIENT, twist=False),
+    "studio": dict(out="AI_NATI_Shawarma_Showreel.mp4", frames=TW + 132, sync=SYNC_STUDIO, twist=True),
 }
 
 

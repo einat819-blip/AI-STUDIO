@@ -60,6 +60,16 @@ def comic_thump():
     return 0.95 * boom + 0.6 * slap + 0.35 * tok
 
 
+def text_slam():
+    """hook title hit: tight low punch + snap (lands with the braking moment)."""
+    d = 0.4
+    t = tvec(d)
+    f = 48 + 110 * np.exp(-t / 0.03)
+    punch = np.tanh(2.0 * np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.12))
+    snap = bp(noise(d), 1200, 7000) * np.exp(-t / 0.008)
+    return 0.9 * punch + 0.5 * snap
+
+
 def riser(dur=0.5):
     t = tvec(dur)
     env = (t / dur) ** 2.2
@@ -232,6 +242,7 @@ def build(version, sources):
     sfx.add(A.tape_stop(tr.buf, tf, 0.14), 0.0)
     sfx.add(A.air_suck(0.12), tf - 0.12, -12, width=0.5)
     sfx.add(reverb(A.stereo(A.freeze_hit()), room, 0.25), tf, -2)               # thump on the stop
+    sfx.add(text_slam(), T(S["hook_text"]), -5)                                  # title slams in on the brake
 
     ts, tfz = T(S["cut_soccer"]), T(S["freeze_soccer"])
     x = A.load_audio(os.path.join(sources, E.SRC["soccer"]), 0.05, tfz - ts + 0.3)
@@ -269,6 +280,7 @@ def build(version, sources):
     sfx.add(tahini_pour(1.7), T(S["tahini"]), -11, width=0.3)
     th = T(S["hero"])
     sfx.add(slowmo_bed(sources, T(S["end"] if not V["twist"] else E.TWIST_START) - th), th)
+    sfx.add(whoosh(0.22), T(S["on_the_way"]) - 0.04, -15, width=0.4)
     sfx.add(A.logo_pop(), T(S["logo"]), -7)
 
     if not V["twist"]:

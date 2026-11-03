@@ -149,43 +149,36 @@ def draw_cues(img, cues, f):
             paste(img, p, bb, s, o, dy=dy)
 
 
-# ------------------------------------------------------ client logo -------
-def client_logo_assets(logo_path):
+# ---------------------------------------------------- client end card -----
+def client_endcard_assets(logo_path):
     logo = Image.open(logo_path).convert("RGBA")
-    d = E.CLIENT_LOGO["d"]
+    d = E.CLIENT_ENDCARD["d"]
     logo = logo.resize((d, d), Image.LANCZOS)
-    pad = 70
+    pad = 80
     plate = Image.new("RGBA", (d + 2 * pad, d + 2 * pad), (0, 0, 0, 0))
     sh = Image.new("RGBA", logo.size, (0, 0, 0, 0))
-    sh.putalpha(logo.getchannel("A").filter(ImageFilter.GaussianBlur(24)).point(lambda v: int(v * 0.65)))
-    plate.alpha_composite(sh, (pad, pad + 12))
+    sh.putalpha(logo.getchannel("A").filter(ImageFilter.GaussianBlur(28)).point(lambda v: int(v * 0.65)))
+    plate.alpha_composite(sh, (pad, pad + 14))
     plate.alpha_composite(logo, (pad, pad))
     full = Image.new("RGBA", (E.W, E.H), (0, 0, 0, 0))
-    full.alpha_composite(plate, (E.W // 2 - plate.width // 2, E.CLIENT_LOGO["y"] - plate.height // 2))
-    # top gradient so the badge sits on darkness while the pita stays visible
-    g = np.zeros((E.H, E.W), np.float32)
-    ys = np.arange(E.H)[:, None]
-    g[:] = np.clip(1 - ys / 980.0, 0, 1) ** 1.6 * 0.8
-    grad = Image.new("RGBA", (E.W, E.H), (8, 4, 2, 0))
-    grad.putalpha(Image.fromarray((g * 255).astype(np.uint8)))
-    return full, full.getchannel("A").getbbox(), grad
+    full.alpha_composite(plate, (E.W // 2 - plate.width // 2, E.CLIENT_ENDCARD["y"] - plate.height // 2))
+    yy, xx = np.mgrid[0:E.H, 0:E.W].astype(np.float32)
+    r = np.sqrt(((xx - E.W / 2) / (E.W * 0.75)) ** 2 + ((yy - E.H * 0.45) / (E.H * 0.6)) ** 2)
+    vig = np.clip(1.0 - 0.55 * r ** 2, 0.35, 1.0)[..., None]
+    return full, full.getchannel("A").getbbox(), vig
 
 
-def draw_client_logo(img, assets, f):
-    st = E.CLIENT_LOGO["start"]
-    if f < st:
-        return
-    full, bb, grad = assets
-    k = f - st
-    ga = min(1.0, (k + 1) / 5)
-    if ga < 1:
-        g = grad.copy()
-        g.putalpha(g.getchannel("A").point(lambda v: int(v * ga)))
-        img.alpha_composite(g)
-    else:
-        img.alpha_composite(grad)
-    s = (0.72 + 0.28 * eob(k / 7, 1.3)) * (1 + 0.0007 * max(0, k - 7))
+def endcard_frame(fr, k, assets):
+    """the hero shot keeps moving, blurred + darkened, behind a big badge."""
+    full, bb, vig = assets
+    small = Image.fromarray(fr).resize((270, 480), Image.BILINEAR).filter(ImageFilter.GaussianBlur(6))
+    blur = np.asarray(small.resize((E.W, E.H), Image.BICUBIC)).astype(np.float32) * 0.42 * vig
+    a = min(1.0, (k + 1) / 3)  # 3-frame focus pull on the beat
+    mix = fr.astype(np.float32) * (1 - a) + blur * a
+    img = Image.fromarray(np.clip(mix, 0, 255).astype(np.uint8)).convert("RGBA")
+    s = (0.8 + 0.2 * eob(k / 8, 1.3)) * (1 + 0.0006 * max(0, k - 8))
     paste(img, full, bb, s, min(1.0, (k + 1) / 3))
+    return img
 
 
 # ------------------------------------------------------ studio world ------
@@ -292,14 +285,24 @@ def draw_end_card(img, A, f, cue_map):
         paste(img, tmp, bb, s, min(1.0, (k + 1) / 3), dy=bounce, angle=ang)
 
 
+_DIM_CACHE = {}
+
+
 def dim(arr, k):
-    """freeze treatment: quick dim + partial desaturation."""
+    """freeze treatment: the frozen frame quickly dims, desaturates and softens,
+    so the twist captions never fight with the logo/text behind them."""
     a = min(1.0, (k + 1) / 2)
-    x = arr.astype(np.float32)
-    grey = x.mean(axis=2, keepdims=True)
-    x = x * (1 - 0.55 * a) + grey * 0.55 * a
-    x *= 1 - 0.5 * a
-    return Image.fromarray(np.clip(x, 0, 255).astype(np.uint8)).convert("RGBA")
+    key = (id(arr), round(a, 3))
+    if key not in _DIM_CACHE:
+        img = Image.fromarray(arr)
+        if a > 0:
+            img = img.filter(ImageFilter.GaussianBlur(7 * a))
+        x = np.asarray(img).astype(np.float32)
+        grey = x.mean(axis=2, keepdims=True)
+        x = x * (1 - 0.6 * a) + grey * 0.6 * a
+        x *= 1 - 0.64 * a
+        _DIM_CACHE[key] = Image.fromarray(np.clip(x, 0, 255).astype(np.uint8)).convert("RGBA")
+    return _DIM_CACHE[key].copy()
 
 
 def shake(img, k):
@@ -320,7 +323,7 @@ def render(version, sources, fonts, logo, studio_logo, out, preview=None):
     cues = [(c, cue_plates(c, fonts)) for c in E.AD_TEXT]
     tw_cues = [(c, cue_plates(c, fonts)) for c in E.TWIST_TEXT] if V["twist"] else []
     cue_map = {c["id"]: p for c, p in cues + tw_cues}
-    cl_assets = client_logo_assets(logo)
+    ec_assets = client_endcard_assets(logo)
     st_assets = studio_assets(fonts, studio_logo) if V["twist"] else None
 
     enc = subprocess.Popen(
@@ -341,9 +344,11 @@ def render(version, sources, fonts, logo, studio_logo, out, preview=None):
     last = None
     for seg in E.AD:
         frames = decode(os.path.join(sources, E.SRC[seg["src"]]), seg)
-        for fr in frames:
-            img = Image.fromarray(fr).convert("RGBA")
-            draw_client_logo(img, cl_assets, f)
+        for k, fr in enumerate(frames):
+            if seg.get("endcard"):
+                img = endcard_frame(fr, k, ec_assets)
+            else:
+                img = Image.fromarray(fr).convert("RGBA")
             draw_cues(img, cues, f)
             last = img
             emit(img, f)
@@ -357,8 +362,9 @@ def render(version, sources, fonts, logo, studio_logo, out, preview=None):
             if f <= E.TWIST["freeze_end"]:
                 img = dim(frozen, f - E.TWIST_START)
                 draw_cues(img, tw_cues, f)
-                if f >= 246:
-                    img = shake(img, f - 246)
+                hit = cue_map and next(c["start"] for c, _ in tw_cues if c["id"] == "it_worked")
+                if f >= hit:
+                    img = shake(img, f - hit)
                 if w0 <= f <= w1 - 1:
                     wipe(img, f - w0, w1 - w0)
             else:
@@ -394,5 +400,9 @@ if __name__ == "__main__":
                                                           "ainati_logo_official.png"))
     ap.add_argument("--out", required=True)
     ap.add_argument("--preview")
+    ap.add_argument("--contact", choices=["handle", "phone"], default="handle",
+                    help="line under 'שלחו הודעה': @ainati_studios (spec) or the studio mobile")
     a = ap.parse_args()
+    if a.contact == "phone":
+        E.HANDLE["text"], E.HANDLE["size"] = E.PHONE, 84
     render(a.version, a.sources, a.fonts, a.logo, a.studio_logo, a.out, a.preview)
