@@ -19,10 +19,26 @@ FONT_FILES = {"heebo": "Heebo-Black.ttf", "rubik": "Rubik-Black.ttf"}
 
 
 # ------------------------------------------------------------ decoding ----
+def crop_box(zoom=1.0, center=(0.5, 0.5)):
+    """largest crop of the output aspect (no stretching), optional punch-in."""
+    sw, sh = R1.SRC_W, R1.SRC_H
+    if sw / sh > E.ASPECT:
+        h = sh / zoom
+        w = h * E.ASPECT
+    else:
+        w = sw / zoom
+        h = w / E.ASPECT
+    cx, cy = center[0] * sw, center[1] * sh
+    x = min(max(cx - w / 2, 0), sw - w)
+    y = min(max(cy - h / 2, 0), sh - h)
+    w, h = int(round(w / 2) * 2), int(round(h / 2) * 2)
+    return w, h, int(round(x)), int(round(y))
+
+
 def decode(path, seg):
     """Return the list of output frames (RGB uint8) for one picture segment."""
     zoom, center = seg.get("zoom", 1.0), seg.get("center", (0.5, 0.5))
-    w, h, x, y = R1.crop_box(zoom, center)
+    w, h, x, y = crop_box(zoom, center)
     fit = (f"crop={w}:{h}:{x}:{y},"
            f"scale={E.W}:{E.H}:flags=lanczos+accurate_rnd+full_chroma_int:in_color_matrix=bt709:in_range=tv,"
            f"format=gbrp,{R1.GRADES[seg['grade']]},{R1.SHARPEN},format=rgb24")
@@ -171,7 +187,7 @@ def client_endcard_assets(logo_path):
 def endcard_frame(fr, k, assets):
     """the hero shot keeps moving, blurred + darkened, behind a big badge."""
     full, bb, vig = assets
-    small = Image.fromarray(fr).resize((270, 480), Image.BILINEAR).filter(ImageFilter.GaussianBlur(6))
+    small = Image.fromarray(fr).resize((E.W // 4, E.H // 4), Image.BILINEAR).filter(ImageFilter.GaussianBlur(6))
     blur = np.asarray(small.resize((E.W, E.H), Image.BICUBIC)).astype(np.float32) * 0.42 * vig
     a = min(1.0, (k + 1) / 3)  # 3-frame focus pull on the beat
     mix = fr.astype(np.float32) * (1 - a) + blur * a
@@ -400,9 +416,12 @@ if __name__ == "__main__":
                                                           "ainati_logo_official.png"))
     ap.add_argument("--out", required=True)
     ap.add_argument("--preview")
+    ap.add_argument("--format", choices=["reels", "fb45"], default="reels",
+                    help="reels = 9:16 1080x1920, fb45 = Facebook/Instagram feed 4:5 1080x1350")
     ap.add_argument("--contact", choices=["handle", "phone"], default="handle",
                     help="line under 'שלחו הודעה': @ainati_studios (spec) or the studio mobile")
     a = ap.parse_args()
+    E.apply_format(a.format)
     if a.contact == "phone":
         E.HANDLE["text"], E.HANDLE["size"] = E.PHONE, 84
     render(a.version, a.sources, a.fonts, a.logo, a.studio_logo, a.out, a.preview)

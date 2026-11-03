@@ -123,6 +123,45 @@ VERSIONS = {
 }
 
 
+# ----------------------------------------------------------- formats -----
+# "reels": 9:16 1080x1920 (Reels / Stories / TikTok) - the layouts above.
+# "fb45":  4:5 1080x1350, Meta's recommended Facebook/Instagram FEED format.
+#          Every shot is reframed (vertical window), every caption re-laid out.
+ASPECT = 9 / 16
+FORMATS = {
+    "fb45": dict(
+        H=1350, aspect=4 / 5,
+        centers={"hook_drive": 0.42, "hook_freeze": 0.42, "soccer_kick": 0.42, "soccer_freeze": 0.42,
+                 "coffee_pour": 0.48, "coffee_freeze": 0.48, "spit": 0.40, "tahini": 0.47,
+                 "hero": 0.47, "endcard": 0.47},
+        cues={"hook": dict(y=820, size=120), "time1": dict(y=1250, size=112), "time2": dict(y=1250, size=112),
+              "opened1": dict(y=1045, size=116), "opened2": dict(y=1210, size=180),
+              "on_the_way": dict(y=100, size=92), "closing": dict(y=1035, size=90),
+              "if_stopped": dict(y=640, size=140), "it_worked": dict(y=640, size=230),
+              "q1": dict(y=540, size=130), "q2": dict(y=770, size=116),
+              "tagline": dict(y=705, size=90), "cta": dict(y=905, size=100)},
+        client_endcard=dict(d=620, y=470), studio_logo=dict(y=390, width=760), handle=dict(y=1015),
+    ),
+}
+
+
+def apply_format(name):
+    """mutate the layout constants in place for a delivery format."""
+    global H, ASPECT
+    if name in (None, "reels"):
+        return
+    F = FORMATS[name]
+    H, ASPECT = F["H"], F["aspect"]
+    for seg in AD:
+        if seg["name"] in F["centers"]:
+            seg["center"] = (seg.get("center", (0.5, 0.5))[0], F["centers"][seg["name"]])
+    for cue in AD_TEXT + TWIST_TEXT:
+        cue.update(F["cues"].get(cue["id"], {}))
+    CLIENT_ENDCARD.update(F["client_endcard"])
+    STUDIO_LOGO.update(F["studio_logo"])
+    HANDLE.update(F["handle"])
+
+
 def seg_len(s):
     if "slowmo" in s:
         return s["slowmo"][2]
