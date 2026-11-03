@@ -391,7 +391,7 @@ if __name__ == "__main__":
     ap.add_argument("--fonts", required=True)
     ap.add_argument("--logo", required=True)
     ap.add_argument("--studio-logo", default=os.path.join(os.path.dirname(__file__), "..", "assets",
-                                                          "ainati_wordmark_TEMP.png"))
+                                                          "ainati_logo_official.png"))
     ap.add_argument("--out", required=True)
     ap.add_argument("--preview")
     a = ap.parse_args()

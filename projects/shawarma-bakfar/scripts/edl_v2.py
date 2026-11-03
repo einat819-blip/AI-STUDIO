@@ -92,8 +92,9 @@ TWIST_TEXT = [
     dict(id="cta", start=306, end=359, y=1235, size=104, font="rubik", anim="pop",
          lines=[[("שלחו הודעה", YELLOW)]]),
 ]
-STUDIO_LOGO = dict(start=288, y=650, width=820)
-HANDLE = dict(text="@ainati_studios", start=309, y=1355, size=66)
+STUDIO_LOGO = dict(start=288, y=650, width=860)
+# contact line under the CTA: Einat's mobile for studio enquiries
+HANDLE = dict(text="052-2858774", start=309, y=1365, size=84)
 CTA_ICON = dict(start=306, wiggles=(318, 336))
 
 SYNC_CLIENT = dict(
