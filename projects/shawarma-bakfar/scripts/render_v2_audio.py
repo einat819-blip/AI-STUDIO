@@ -217,12 +217,18 @@ def build(version, sources):
 
     # ---- MODE 1: comic mystery -----------------------------------------
     tf = T(S["freeze_tractor"])
+    tb_ = T(S["brake"])
     tr = Bus(tf + 0.4)
-    for nm, extra in (("tractor_drive", 0.0), ("tractor_headturn", 0.35)):
-        x = A.src_audio_for_segment(sources, seg[nm], extra=extra)
-        tr.add(fade(x, 0.003, 0.006), T(st[nm]))
-    tr.add(A.engine_layer(tf + 0.4) * 0.5, 0.0, -7)
-    tr.add(A.brake_screech(tf - 0.06 + 0.35), 0.06, -4, pan=0.15, width=0.3)   # loud screech
+    hs = seg["hook_drive"]["frames"]
+    # the take's own audio (engine, then its brake squeal ~1.2 s), in sync with picture
+    x = A.load_audio(os.path.join(sources, E.SRC["tractor_new"]), T(hs[0]), T(len(hs)) + 0.35)
+    x *= db(-18) / max(A.rms(x), 1e-6)
+    x *= min(1.0, db(-8) / max(np.abs(x).max(), 1e-9))
+    tr.add(fade(x, 0.003, 0.006), 0.0)
+    eng = A.engine_layer(tf + 0.4) * 0.5
+    eng[n(tb_):] *= np.linspace(1.0, 0.35, len(eng) - n(tb_))   # engine bogs down under braking
+    tr.add(eng, 0.0, -7)
+    tr.add(A.brake_screech(tf - tb_ + 0.35), tb_, -4, pan=0.15, width=0.3)      # loud screech from the brake
     sfx.add(A.tape_stop(tr.buf, tf, 0.14), 0.0)
     sfx.add(A.air_suck(0.12), tf - 0.12, -12, width=0.5)
     sfx.add(reverb(A.stereo(A.freeze_hit()), room, 0.25), tf, -2)               # thump on the stop
@@ -313,6 +319,9 @@ if __name__ == "__main__":
     os.makedirs(a.outdir, exist_ok=True)
     sfx, mus = build(a.version, a.sources)
     mix = A.master(sfx + mus, -14.0)
+    _, tp = A.lufs(mix)
+    if tp > -1.0:  # inter-sample overs: trade a few tenths of LUFS for a clean -1 dBTP
+        mix *= db(-1.1 - tp)
     pre = os.path.join(a.outdir, a.version)
     A.write_wav(pre + "_mix.wav", mix)
     A.write_wav(pre + "_sfx_stem.wav", sfx * 0.5)

@@ -8,6 +8,8 @@ W, H = 1080, 1920
 
 SRC = {
     "tractor": "01_tractor_best_take.mp4",
+    # new hook take (uploaded later): grandpa brakes and the tractor comes to a halt
+    "tractor_new": "01b_tractor_hook_new.mp4",
     "soccer": "02_soccer_field_take.mp4",
     "coffee": "03_coffee_pouring_source.mp4",
     "food": "05_shawarma_food_original.mp4",
@@ -35,36 +37,35 @@ def hold(n, count):
 
 # --------------------------------------------------------- shawarma ad ----
 AD = [
-    # 0.00 tractor: shocked face, wheels + dust moving, engine + brakes
-    dict(name="tractor_drive", src="tractor", frames=rng(46, 54), grade="village"),
-    # 0.375 cut on motion to the head turn (hidden under the screech)
-    dict(name="tractor_headturn", src="tractor", frames=rng(88, 93), grade="village"),
-    # 0.625 FREEZE + thump exactly on the stop
-    dict(name="tractor_freeze", src="tractor", frames=hold(93, 9), grade="village", freeze=True),
-    # 1.00 soccer (ball rising) -> 1.33 FREEZE ball in the air
+    # 0.00 HOOK (2.5 s): grandpa charging on the tractor, dust, shocked face;
+    #      ~1.1 s he slams the brakes, the tractor lurches and halts (src 11-57)
+    dict(name="hook_drive", src="tractor_new", frames=rng(11, 57), grade="village"),
+    # 1.96 FREEZE on the halt (src 58: tractor stopped, eyes to the side) + thump
+    dict(name="hook_freeze", src="tractor_new", frames=hold(58, 13), grade="village", freeze=True),
+    # 2.50 soccer (ball rising) -> 2.83 FREEZE ball in the air
     dict(name="soccer_kick", src="soccer", frames=rng(9, 16), grade="village"),
-    dict(name="soccer_freeze", src="soccer", frames=hold(17, 16), grade="village", freeze=True),
-    # 2.00 coffee pour -> 2.33 FREEZE stream in the air, clock stops, silence
+    dict(name="soccer_freeze", src="soccer", frames=hold(17, 12), grade="village", freeze=True),
+    # 3.33 coffee pour -> 3.67 FREEZE stream in the air, clock stops, silence
     dict(name="coffee_pour", src="coffee", frames=rng(18, 25), grade="village"),
-    dict(name="coffee_freeze", src="coffee", frames=hold(26, 16), grade="village", freeze=True),
-    # 3.00 HARD CUT on the music hit: the spit, knife at work
-    dict(name="spit", src="food", frames=rng(0, 29), grade="food"),
-    # 4.25 punch-in on the hot meat being sliced (cut on action)
-    dict(name="cutting", src="food", frames=rng(30, 47), grade="food", zoom=1.18, center=(0.52, 0.44)),
-    # 5.00 meat slides from the scoop into the pita (tight: hides the heart-shaped pita)
+    dict(name="coffee_freeze", src="coffee", frames=hold(26, 20), grade="village", freeze=True),
+    # 4.50 HARD CUT on the music hit: the spit, knife at work
+    dict(name="spit", src="food", frames=rng(0, 23), grade="food"),
+    # 5.50 punch-in on the hot meat being sliced (cut on action)
+    dict(name="cutting", src="food", frames=rng(36, 47), grade="food", zoom=1.18, center=(0.52, 0.44)),
+    # 6.00 meat slides from the scoop into the pita (tight: hides the heart-shaped pita)
     dict(name="into_pita", src="food", frames=rng(105, 116), grade="food", zoom=1.32, center=(0.47, 0.36)),
-    # 5.50 tahini pour on the loaded pita
-    dict(name="tahini", src="food", frames=rng(158, 205), grade="food"),
-    # 7.50 the ready pita, hero slow-mo (src 215-240 stretched x1.85 with motion interpolation)
-    dict(name="hero", src="food", slowmo=(215, 240, 48), grade="food"),
+    # 6.50 tahini pour on the loaded pita
+    dict(name="tahini", src="food", frames=rng(164, 193), grade="food"),
+    # 7.75 the ready pita, hero slow-mo (src 215-240 stretched x1.6 with motion interpolation)
+    dict(name="hero", src="food", slowmo=(215, 240, 42), grade="food"),
 ]
 
 AD_TEXT = [
-    dict(id="hook", start=0, end=23, y=1130, size=132, font="heebo", anim="slam", stagger=2, lines=[
+    dict(id="hook", start=24, end=59, y=1130, size=132, font="heebo", anim="slam", stagger=2, lines=[
         [("מה ", CREAM), ("עצר", ORANGE), (" את", CREAM)],
         [("כל המושב?!", CREAM)],
     ]),
-    dict(id="reveal", start=72, end=101, y=1300, size=112, font="heebo", anim="slam", lines=[
+    dict(id="reveal", start=108, end=131, y=1300, size=112, font="heebo", anim="slam", lines=[
         [("חוץ ", CREAM), ("מהשווארמה.", GOLD)],
     ]),
 ]
@@ -98,8 +99,8 @@ HANDLE = dict(text="052-2858774", start=309, y=1365, size=84)
 CTA_ICON = dict(start=306, wiggles=(318, 336))
 
 SYNC_CLIENT = dict(
-    freeze_tractor=15, cut_soccer=24, freeze_soccer=32, cut_coffee=48, freeze_coffee=56,
-    drop=72, knife_wide=84, cutting=102, into_pita=120, tahini=132, hero=180,
+    brake=26, freeze_tractor=47, cut_soccer=60, freeze_soccer=68, cut_coffee=80, freeze_coffee=88,
+    drop=108, knife_wide=120, cutting=132, into_pita=144, tahini=156, hero=186,
     logo=192, final_hit=216, end=228,
 )
 SYNC_STUDIO = dict(SYNC_CLIENT, final_hit=None, end=360,
