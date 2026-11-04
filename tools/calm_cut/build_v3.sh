@@ -5,7 +5,7 @@
 # pose jumps, soft 4 to 6 frame transitions. Times are for this video only.
 #   build_v3.sh <input_9x16.mp4> <work_dir> <output_picture.mp4> [end_card_src_end]
 set -euo pipefail
-IN=$1; W=$2; OUT=$3; IEND=${4:-14.4167}
+IN=$1; W=$2; OUT=$3; IEND=${4:-14.4375}
 HERE=$(cd "$(dirname "$0")" && pwd)
 SLOW="$HERE/slowseg.sh"; RF="$HERE/reframe_seg.py"
 mkdir -p "$W/seg" "$W/seg45"
