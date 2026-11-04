@@ -7,10 +7,12 @@
 | קובץ | מה זה |
 |---|---|
 | `woman_frame.jpg` | תמונת האישה המקורית, 1672x941. זהה לתמונה שכבר נמצאת בספריית Hedra בשם "Woman Speaking at a Hearing" |
-| `woman_vo_trim.wav` | הדיבוב המקורי (OGG), חתוך: 0.31 שניות לפני תחילת הדיבור ו 0.30 שניות אחרי סופו. אורך 6.69 שניות |
+| `woman_vo_trim.wav` | הדיבוב המקורי (OGG), חתוך: 0.31 שניות לפני ״סליחה״, נגמר אחרי ״מזעזע״, ואחריו 0.9 שניות שקט לצחוק. אורך 5.72 שניות, בדיוק המשבצת של סצנה 2 בעריכה |
 | `woman_vo_trim.mp3` | אותו אודיו ב MP3 320k, להעלאה ל Hedra |
 
-**חיתוך:** בקובץ המקורי היו 1.42 שניות של שקט לפני המילה הראשונה. הורדתי אותן כדי שהשוט יתחיל קרוב לדיבור ולא נשלם על שקט. אם השקט הזה הוא רגע תגובה מכוון, אפשר לחזור לקובץ המקורי.
+**חיתוך:** בקובץ המקורי היו 1.42 שניות של שקט לפני המילה הראשונה, ואחרי ״מזעזע״ היה עוד משפט, ״אני לא יכולה לעבוד ככה״, שלא מופיע בתסריט. שניהם הוסרו. הטקסט שנשאר: ״סליחה רגע, מי אחראי פה על התאורה? זה פשוט מזעזע.״
+
+**עדכון:** זה השוט של סצנה 2 (עינת מתלוננת על התאורה) בעריכת חלק 1, `edits/part1`. גרסה קודמת של הקובץ הזה כללה גם את המשפט הנוסף. אם הורדת אותה, צריך להחליף.
 
 **איכות:** הקובץ המקורי הוא הודעה קולית ב 19kbps. לסנכרון שפתיים זה מספיק, אבל הוא יישמע חלש יותר מהדיבוב של התובע. אם יש ייצוא באיכות גבוהה של אותה הקלטה, עדיף להשתמש בו.
 
@@ -18,11 +20,11 @@
 
 | קטע | זמן |
 |---|---|
-| 1 | 0.31 עד 1.48 |
-| 2 | 1.64 עד 6.39 |
-| הפסקה בסוף | 6.39 עד 6.69 |
+| ״סליחה רגע,״ | 0.31 עד 1.48 |
+| ״מי אחראי פה על התאורה? זה פשוט מזעזע.״ | 1.64 עד 4.83 |
+| הפסקה לצחוק | 4.83 עד 5.72 |
 
-לא בוצע תמלול. ההנחיות למשחק מבוססות על התמונה ועל ההקשר מהשוט של התובע.
+הטקסט אומת בתמלול. לפי התסריט ההערה צריכה להישמע מקצועית ורצינית, לא כמו בדיחה.
 
 ## כרטיס שוט
 
@@ -42,8 +44,8 @@
 
 ```
 Photorealistic cinematic close-up in the same dark wood-paneled Israeli courtroom, soft daylight from the right, Israeli flag behind her, blurred gallery on the left. The same woman from the start frame: highlighted blonde hair with dark roots in a messy high ponytail with loose strands, black blazer, thin silver necklace, small hoop earrings, seated at a desk with a black microphone in the lower right corner. She answers the judge just off-camera to the right, speaking Hebrew with precise lip sync to the audio.
-Her attitude: calm, slightly incredulous and defensive, as if she honestly cannot see what she did wrong. A small open-palm gesture with her raised hand while she speaks, eyebrows slightly raised, a brief skeptical tilt of the head. No smiling.
-After the last word she closes her mouth and holds a steady, unapologetic look at the judge for a brief beat.
+Her attitude: a serious, professional complaint about the courtroom lighting, critical and matter-of-fact, as if she is the only competent person in the room. A small open-palm gesture with her raised hand while she speaks, a critical glance up toward the ceiling lights, eyebrows slightly raised. No smiling, not trying to be funny.
+After the last word she closes her mouth and holds a steady, unimpressed look at the judge for the remaining beat.
 Camera: locked on a tripod, only a very slow, subtle push-in. Natural skin texture, consistent identity, hair, wardrobe, microphone and background. No subtitles, no on-screen text, no exaggerated gestures, no comedic mugging.
 ```
 
