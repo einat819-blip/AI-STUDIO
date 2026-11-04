@@ -1,5 +1,54 @@
 # גרסת פייסבוק: הזמנה חיה לבר מצווה של יונתן
 
+## גרסה 2: קצב רגוע יותר (בלי מוזיקה עדיין)
+
+`yonatan_invite_facebook_4x5_v2_no_music.mp4`, ‏1080x1350, ‏15.4 שניות.
+
+* סדר הדיאלוג תוקן: קודם אבא שואל ״בבוקר?!״, ואז יונתן עונה ״כן, בבוקר!״. במקור התשובה הגיעה לפני השאלה.
+* שוט ההבזק של אבא (0.3 שניות) הוסר. השוט הקצר ביותר עכשיו הוא בערך שנייה.
+* כל משפט על המסך נשאר לפחות שנייה בערך. השוטים של ההזמנה ושל אבא הואטו בעזרת יצירת פריימים ביניים. ברגעים שבהם המצלמה זזה מהר, המהירות נשארה רגילה כדי שלא תהיה מריחה.
+* במקום חיתוכים חדים: מעבר רך של 4 פריימים בין שוטי הדיאלוג, ו 6 פריימים במעבר בין סצנות. בשוטים של ההזמנה יש התקרבות איטית, וההתרחקות לכרטיס ״יש הזמנות״ מתחילה מוקדם ובעדינות.
+* כרטיס הסיום קוצר בשנייה, ונשאר קריא כמעט 4 שניות.
+* הסאונד המקורי לא נכנס: צלילי הפופ של הבועות מעורבבים בתוך המוזיקה ונופלים על הזמנים הישנים. המוזיקה מ Suno תיכנס כאן.
+
+### Suno לגרסה 2
+
+Style of Music:
+```
+Warm, gentle and playful instrumental for a heartfelt family bar mitzvah invitation ad. 96 BPM, 4/4, bright major key. Soft lead clarinet with a sweet, lightly klezmer flavored melody, legato string section with light pizzicato, felt piano, soft acoustic guitar, gentle shaker and brushed snare, glockenspiel accents. Smooth flowing arrangement with gradual dynamics, no sudden stops, a light breath in the middle, then a warm full theme and a sustained final chord that rings out. Polished cinematic family commercial sound, clean modern mix, no vocals.
+```
+
+Exclude Styles:
+```
+vocals, choir, humming, hard stops, stabs, accordion, fast tempo, EDM, dubstep, distortion, sad, dark
+```
+
+מבנה (אם שדה המילים פתוח במצב Instrumental):
+```
+[Intro: soft clarinet melody, warm strings]
+[Verse: gentle pizzicato and felt piano, light shaker]
+[Break: music thins to a single held clarinet note]
+[Verse: warm groove returns, soft hand claps]
+[Build: strings rise gently]
+[Chorus: full warm main theme]
+[Outro: sustained final chord, gentle ring out]
+[End]
+```
+
+| זמן בגרסה 2 | בתמונה | במוזיקה |
+|---|---|---|
+| 0 עד 1.2 | ״אבאאא!״ | קלרינט רך נכנס עם הבועה |
+| 1.2 עד 3.2 | אבא נכנס, ״8:00 בבוקר!״ | פיציקטו ופסנתר קלים |
+| 3.3 עד 4.3 | אבא: ״בבוקר?!״ | המוזיקה מתמעטת לצליל אחד מוחזק, בלי עצירה חדה |
+| 4.3 עד 7.4 | ״כן, בבוקר!״, ״אל תאחר!״, כיף | הגרוב חוזר, מחיאות כף רכות בכיף (בערך 7.1) |
+| 7.4 עד 8.7 | יונתן מסדר את הטלית | רגע רך |
+| 8.7 עד 10.9 | ״יש הזמנות שאי אפשר להתעלם מהן!״ | הכינורות עולים בעדינות |
+| 10.9 עד 15.4 | כרטיס הסיום | הנושא המלא ואקורד סיום מוחזק |
+
+יצירה מחדש: `bash tools/calm_cut/build_calm.sh input_9x16.mp4 work_dir output.mp4`
+
+## גרסה 1: אותה עריכה, רק חיתוך ל 4:5
+
 ## הקבצים
 
 | קובץ | למה |
