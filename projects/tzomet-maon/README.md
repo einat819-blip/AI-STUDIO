@@ -1,0 +1,73 @@
+# צומת מעון · סאטירה אנכית 9:16
+
+פרויקט העריכה של הסרטון. אפשר לייצא מחדש מכאן בכל שלב: הקוד, הטיימליין וחומרי המקור נמצאים בתיקייה הזאת.
+
+## מבנה
+
+| תיקייה | מה יש בה |
+|---|---|
+| `src/` | חומרי המקור: `clip1` עד `clip7` ו `vo.mp3` (הקריינות מ ElevenLabs) |
+| `assets/logo.webp` | הלוגו של AINATI STUDIOS |
+| `build/` | גרסה 2: הגרסה הנוכחית, שבנויה על הקריינות האמיתית |
+| `build_v1_draft/` | הטיוטה הראשונה, שנשמרה כמו שהיא |
+| `MANIFEST.sha256` | טביעות של קובצי המקור |
+
+### הקליפים
+
+| קובץ | תוכן | הערה |
+|---|---|---|
+| clip1 | צילום אווירי של הכביש הריק | נעשה בו שימוש כפריים קפוא עם זום עדין |
+| clip2 | הפקק מתמלא (שוט האב) | |
+| clip3 | המשפחה כלואה בין שתי משאיות | |
+| clip4 | החיילים בג'יפ | אחרי שנייה 4 הקסדה והפנים משתנים, לא בשימוש |
+| clip5 | נהג המשאית | |
+| clip6 | אתר העבודות ובסיס הבטון | בין שנייה 1.1 ל 4.3 מופיע רמזור אמיתי, לא בשימוש |
+| clip7 | בסיס הבטון, ותנועת מצלמה עד לשמיים הריקים | |
+
+## הטיימליין
+
+כל התזמונים נמצאים ב `build/timeline.py`. הקריינות מחולקת רק בתוך השקטים שלה ומקבלת הפוגות קצרות: 0.35 שניות אחרי הצפירות, 1.3 שניות להילוך המהיר עם לוח השנה, ו 0.45 שניות של שקט מביך לפני הפאנץ'. המילים עצמן לא שונו.
+
+## בנייה מחדש
+
+הספריות הדרושות: Python 3 עם numpy, scipy, opencv-python-headless ו Pillow (עם raqm), וגם ffmpeg.
+
+1. הפונטים Rubik ו Heebo (רישיון OFL), מתוך google/fonts, נשמרים בתיקייה `fonts/`.
+2. האפקטים מ Epidemic Sound נטענים דרך חשבון Higgsfield, לפי הרשימה למטה, ומומרים ל WAV בתדר 48k סטריאו בתיקייה `wav/`. הם לא נשמרים כאן בגלל הרישיון.
+3. הרצה:
+
+```bash
+python3 build/music.py out/music.wav
+python3 build/mix.py out/mix_raw.wav --stems out/stems
+bash build/master.sh out/mix_raw.wav out/mix_master.wav
+python3 build/render.py --out out/tzomet_maon.mp4 --audio out/mix_master.wav
+```
+
+### האפקטים (מזהי Epidemic Sound)
+
+| קובץ ב wav/ | מזהה |
+|---|---|
+| birds | 57223ba9-1788-47ec-bddf-31c0b4f6fb3c |
+| truck_idle | d276f085-a8b0-4d50-9247-1606cb74ee96 |
+| van_idle | 653f3ee2-ee97-4a34-829e-82f4236f3660 |
+| horn1 | 6937f252-3fdb-4de9-b0cd-8fdbfe67a794 |
+| horn2 | 83b500a0-fe49-4631-ba8b-f16b04c20c96 |
+| horn3 | a5177567-01aa-446b-b8e5-cd77448ba610 |
+| clock | edd316ef-6fd9-457e-9f46-fdc185ea46e9 |
+| fanfare_success | a7890bad-75d0-415f-b721-e31c7b87fd6f |
+| excavator | 1b19237b-f75d-479c-a6ff-3855354791f9 |
+| jackhammer | 61235d07-b352-4643-997f-6d29b6377937 |
+| pages_fast | a3a13514-719e-4214-962c-6c7cd107e5eb |
+| pages_flip | 64b18c38-32d9-410a-ba1b-c41964d08d34 |
+
+את `fanfare_stretched.wav` יוצרים מ fanfare_success:
+
+```bash
+ffmpeg -i wav/fanfare_success.wav -af "rubberband=tempo=0.85" -ar 48000 -ac 2 wav/fanfare_stretched.wav
+```
+
+המוזיקה מקורית, ונוצרת בקוד ב `build/music.py`. אין בה חומר של צד שלישי.
+
+## מפרט הייצוא
+
+1080×1920, 30 FPS, H.264 High, AAC 320k. עוצמה מינוס 14 LUFS, שיא אמיתי מינוס 1.7 dBTP.
