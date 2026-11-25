@@ -174,6 +174,21 @@ def build_overlays():
         ov['slates'][s['t0']] = np.array(im)
     # calendar pages
     ov['cal'] = calendar_pages()
+    if 'ENDCARDS' in globals():
+        ov['end_lines'] = []
+        # one common size for all main lines (set by the longest one, max 900 px wide), secondary line in proportion
+        main = [(txt, wg, sz) for txt, wg, sz, *_ in ENDCARDS['lines'] if wg >= 700]
+        common = min(sz for _, _, sz in main)
+        while any(font(FONT_RUBIK, common, wg).getlength(txt, direction='rtl') > 900 for txt, wg, _ in main):
+            common -= 1
+        scale = common / max(sz for _, _, sz in main)
+        for txt, wg, sz, col, y, a, b in ENDCARDS['lines']:
+            f = font(FONT_RUBIK, common if wg >= 700 else int(round(sz * scale)), wg)
+            ov['end_lines'].append(rgba_np(text_block(txt, f, col, 960, stroke=0)))
+        print('end-card type size', common, 'secondary', int(round(60 * scale)))
+        lg = Image.open(LOGO).convert('RGBA')
+        lw = ENDCARDS['logo'][2]
+        ov['end_logo'] = rgba_np(lg.resize((lw, int(lg.height * lw / lg.width)), Image.LANCZOS))
     if 'COUNTER' in globals():
         ov['counter'] = {k: counter_glyphs(c) for k, c in (('run', (255, 255, 255)), ('lock', (255, 214, 64)))}
     return ov
@@ -286,6 +301,8 @@ def shot_at(t):
 def render_frame(t, ov, draft=True):
     s = shot_at(t)
     u = (t - s['t0']) / (s['t1'] - s['t0'])
+    if s['kind'] == 'endcards':
+        return render_endcards(t - s['t0'], ov)
     if s['kind'] == 'slate':
         frame = ov['slates'][s['t0']].copy()
     else:
@@ -329,6 +346,20 @@ def render_frame(t, ov, draft=True):
     if draft and DRAFT_LABEL:
         dl = ov['draft']
         composite(frame, dl, 40 + dl.shape[1] / 2, 70, 1.0)
+    return frame
+
+
+def render_endcards(r, ov):
+    """black screen, clean white type, then the gold logo. Simple fades only."""
+    frame = np.zeros((H, W, 3), np.uint8)
+    for img, (txt, wg, sz, col, y, a, b) in zip(ov['end_lines'], ENDCARDS['lines']):
+        if a <= r < b:
+            al = min(ease((r - a) / 0.28), ease((b - r) / 0.2))
+            composite(frame, img, W / 2, y, al)
+    la, ly, lw = ENDCARDS['logo']
+    if r >= la:
+        k = ease((r - la) / 0.6)
+        composite(frame, ov['end_logo'], W / 2, ly, k, 0.965 + 0.035 * k)
     return frame
 
 

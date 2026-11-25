@@ -297,6 +297,15 @@ def build():
     mix = mus + ducked(amb.x, -5) + ducked(fx.x, -4) + ducked(ff_bus.x, -5) + vo * 10 ** (7.5 / 20)
     n_out = int(DURATION * SR)
     mix = mix[:n_out]
+    if 'blackout' in M:        # hard cut to black: everything stops dead, then silence + one hopeless honk
+        i0 = int(M['blackout'] * SR)
+        mix[i0 - 240:i0] *= np.linspace(1, 0, 240)[:, None]
+        mix[i0:] = 0
+        vo[i0:] = 0; mus[i0:] = 0
+        honk = lowpass(load('horn3'), 5000) * 10 ** (9 / 20)
+        h0 = int(M['end_honk'] * SR)
+        n_h = min(len(honk), n_out - h0)
+        mix[h0:h0 + n_h] += honk[:n_h]
     mix = fade(mix, 0.0, 0.008)          # hard cut at the end (8 ms only to avoid a click)
     stems = dict(vo=(vo * 10 ** (7.5 / 20))[:n_out], music=mus[:n_out], fx=(ducked(amb.x, -5) + ducked(fx.x, -4) + ducked(ff_bus.x, -5))[:n_out])
     return mix, stems

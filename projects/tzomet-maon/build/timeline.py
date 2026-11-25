@@ -217,3 +217,28 @@ _w0, _w1 = 9.87, T_DATE
 SHOTS = [s_ for s_ in SHOTS if not (_w0 - 1e-6 <= s_['t0'] < _w1 - 1e-6)]
 SHOTS.append(dict(t0=_w0, t1=_w1, kind="clip", clip=11, src=1.95, zoom=(1.00, 1.04), center=(0.50, 0.50)))
 SHOTS.sort(key=lambda s_: s_['t0'])
+
+# v4.2: half a second on her face after the last line, hard cut to black, two text cards and the
+# AINATI STUDIOS logo (~6 s, no narration), one short hopeless honk at the very end.
+T_BLACK = round((d2(11.67) + 0.5) * FPS) / FPS           # last word + ~0.5 s, on a frame edge
+for s_ in SHOTS:
+    if s_['t0'] == N_SHOCK:
+        _u = (T_BLACK - s_['t0']) / (s_['t1'] - s_['t0'])
+        s_['zoom'] = (s_['zoom'][0], s_['zoom'][0] + (s_['zoom'][1] - s_['zoom'][0]) * _u)
+        s_['t1'] = T_BLACK                                 # identical frames to v4.1, just ends earlier
+SEG_L = T_BLACK - S0                                       # turn signal stops dead at the cut
+END_L = 6.0
+DURATION = round(T_BLACK + END_L, 4)
+SHOTS.append(dict(t0=T_BLACK, t1=DURATION, kind="endcards"))
+WHITE = (255, 255, 255)
+ENDCARDS = dict(
+    lines=[  # text, weight, size, colour, y, appear, disappear  (seconds after the cut)
+        ("רצינו לעשות סרטון קצר.", 800, 88, WHITE, 895, 0.15, 2.65),
+        ("אבל גם הוא נתקע בצומת מעון.", 800, 88, WHITE, 1000, 1.05, 2.65),
+        ("הסרטון הוא סאטירה.", 500, 60, (205, 205, 205), 845, 2.85, 4.85),
+        ("מי שנפגע, שיירגע.", 800, 88, WHITE, 950, 3.25, 4.85),
+        ("מי שנתקע, שיצפור.", 800, 88, WHITE, 1055, 3.25, 4.85),
+    ],
+    logo=(4.95, 940, 620),   # appear, y, width
+)
+MARKS.update(seg_out=T_BLACK, blackout=T_BLACK, end_honk=T_BLACK + 5.40)
