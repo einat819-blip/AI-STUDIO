@@ -114,37 +114,49 @@ DRAFT_LABEL = None
 
 
 # =====================================================================================
-# v3: "פנייה שמאלה מאופקים" insert. Placed after the approved "באופק..." time-lapse and
-# before "והנה לכם". Everything from INS_AT on moves later by SEG_L, untouched.
+# v4: final order. The approved run (rural road ... "אבל האדום שלו כבר עובד") plays first and the
+# left-turn segment closes the film on "סעו בזהירות!" + a held frame + hard cut.
+# End card and its narration are removed. Subtitles are re-timed from a real transcription of both
+# narration files (Whisper turbo and large-v3 agree) plus measured word onsets.
 # =====================================================================================
-INS_AT = T_BASE              # 15.55: the cut from the time-lapse to the concrete base
-SEG_L = 385 / 30             # 12.83 s: length of the insert, set by the real narration; whole frames so
-                             # every approved shot after it lands on exactly the same frame grid as before
+VO_SEGS = VO_SEGS[:-1]                       # drop "צומת מעון. העתיד ירוק. ההווה פחות."
+TITLES = []
+SHOTS = [s_ for s_ in SHOTS if s_['kind'] != 'endcard']
+# three approved cuts moved onto the measured word onsets ("חיילים", "ומשאיות", "לצומת"); content unchanged
+_RETIME = {4.80: 4.74, 5.52: 5.46, 8.42: 8.30}
+for s_ in SHOTS:
+    s_['t0'] = _RETIME.get(s_['t0'], s_['t0'])
+    s_['t1'] = _RETIME.get(s_['t1'], s_['t1'])
 
+# main narration: (onset, end) in source seconds, measured
+_CHUNKS = [
+    (0.00, 1.66, "איך מתכננים צומת בעוטף?", {}),
+    (2.18, 3.13, "קחו כביש אחד.", {"אחד.": YEL}),
+    (3.36, 4.74, "תכניסו אליו תושבים,", {}),
+    (4.74, 5.46, "חיילים", {}),
+    (5.46, 7.08, "ומשאיות לכרם שלום.", {}),
+    (7.33, 8.30, "תנקזו את כולם", {}),
+    (8.30, 9.10, "לצומת אחת.", {"אחת.": YEL}),
+    (9.51, 10.52, "תוסיפו עבודות!", {"עבודות!": YEL}),
+    (10.84, 12.13, "ותאריך סיום", {}),
+    (12.13, 13.83, "שלא נראה באופק...", {}),
+    (14.20, 15.17, "והנה לכם", {}),
+    (15.17, 16.33, "הפלא ההנדסי", {"הפלא": YEL, "ההנדסי": YEL}),
+    (16.33, 17.67, "של צומת מעון!", {}),
+    (17.92, 19.68, "רמזור שעוד לא הותקן...", {}),
+    (20.12, 20.62, "אבל", {}),
+    (20.62, 21.66, "אבל האדום שלו", {"האדום": RED}),
+    (21.67, 22.36, "כבר עובד.", {}),
+]
+SPEECH = [(d(a), d(b - 1e-3), t, hl) for a, b, t, hl in _CHUNKS]
 
-def sh(t):
-    return round(t + SEG_L, 3) if t >= INS_AT - 1e-6 else t
-
-
-VO_SEGS = [(a, b, off + (SEG_L if a + off >= INS_AT else 0)) for a, b, off in VO_SEGS]
-SPEECH = [(sh(a), sh(b), txt, hl) for a, b, txt, hl in SPEECH]
-TITLES = [(sh(a), txt, col) for a, txt, col in TITLES]
-DURATION = sh(DURATION)
-for s in SHOTS:
-    if s['t0'] >= INS_AT - 1e-6:
-        s['t0'], s['t1'] = sh(s['t0']), sh(s['t1'])
-MARKS = {k: (sh(v) if k not in ('timelapse_out',) else v) for k, v in MARKS.items()}
-T_BASE_OLD = T_BASE
-T_BASE, T_SKY, T_ADOM, T_KVAR, T_END = sh(T_BASE), sh(T_SKY), sh(T_ADOM), sh(T_KVAR), sh(T_END)
-
-S0 = INS_AT                  # insert starts here (absolute)
-# narration 2 placement: (src_a, src_b, offset relative to S0)
+S0 = T_END                                   # 24.95: after the hold on the family + hopeless honk
 VO2_SEGS = [
     (0.00, 2.40, 0.25),      # מגיעים מאופקים ורוצים לפנות שמאלה?
-    (2.40, 5.66, 0.25),      # בקלי קלות! רק חמישים דקות.
-    (5.66, 7.24, 0.25),      # ובסוף אפילו תצליחו לפנות!
-    (7.24, 10.58, 0.25),     # אם לא חתכו אתכם ונכנסו בכם בדרך.
-    (10.58, 11.96, 0.40),    # בהצלחה!   (+0.15: a beat on her shock)
+    (2.40, 5.66, 0.25),      # אין בעיה! זה ייקח לכם רק חמישים דקות!
+    (5.66, 7.24, 0.75),      # אבל בסוף תצליחו!      (+0.5: a beat on the locked 50:00)
+    (7.24, 10.58, 0.75),     # בתנאי שלא חתכו אתכם בדרך ונכנסו לכם באוטו.
+    (10.58, 11.96, 0.90),    # סעו בזהירות!          (+0.15: a beat on her shock)
 ]
 
 
@@ -156,44 +168,45 @@ def d2(src_t):
 
 
 _CHUNKS2 = [
-    (0.05, 1.15, "מגיעים מאופקים", {}),
-    (1.15, 2.37, "ורוצים לפנות שמאלה?", {}),
-    (2.50, 3.60, "בקלי קלות!", {}),
-    (3.60, 5.60, "רק חמישים דקות.", {"רק": YEL, "חמישים": YEL, "דקות.": YEL}),
-    (5.78, 6.61, "ובסוף אפילו", {}),
-    (6.61, 7.35, "תצליחו לפנות!", {}),
-    (7.40, 7.98, "אם לא", {}),
-    (7.98, 8.50, "אם לא חתכו אתכם", {"חתכו": RED}),          # twist word only once spoken
-    (8.50, 10.45, "ונכנסו בכם בדרך.", {}),
-    (10.75, 11.90, "בהצלחה!", {}),
+    (0.05, 1.05, "מגיעים מאופקים", {}),
+    (1.05, 2.33, "ורוצים לפנות שמאלה?", {}),
+    (2.51, 3.50, "אין בעיה!", {}),
+    (3.56, 4.29, "זה ייקח לכם", {}),
+    (4.29, 5.54, "רק חמישים דקות!", {"רק": YEL, "חמישים": YEL, "דקות!": YEL}),
+    (5.80, 7.14, "אבל בסוף תצליחו!", {}),
+    (7.40, 8.16, "בתנאי שלא", {}),
+    (8.16, 9.24, "חתכו אתכם בדרך", {"חתכו": RED}),              # twist word only once spoken
+    (9.24, 10.48, "ונכנסו לכם באוטו.", {}),
+    (10.80, 11.77, "סעו בזהירות!", {}),
 ]
 SPEECH = sorted(SPEECH + [(d2(a), d2(b - 1e-3), t, hl) for a, b, t, hl in _CHUNKS2])
 
-# insert picture (absolute times)
-N_WATCH = S0 + 3.70           # cut to the watch close-up
-N_TURN = d2(5.78) - 0.10      # "ובסוף": she spots a gap and goes
-N_CUT = d2(7.98)              # "חתכו": hard cut, white SUV, brakes
-N_HELP = S0 + 11.00           # helpless look before "בהצלחה!"
+SEG_L = round((d2(11.67) + 1.0 - S0) * FPS) / FPS     # last word + ~1 s held frame, whole frames
+DURATION = round(S0 + SEG_L, 4)
+N_WATCH = S0 + 2.65                          # "אין בעיה!": the 50-minute wait (watch close-up)
+N_TURN = S0 + 5.85                           # signals, looks around, then goes
+N_CUT = d2(8.16)                             # "חתכו" (measured onset): hard cut, white SUV, brakes
+N_SHOCK = S0 + 11.55                         # "סעו בזהירות!": shock -> despair -> disbelief, held
 SHOTS += [
     dict(t0=S0, t1=N_WATCH, kind="clip", clip=9, src=0.00, zoom=(1.00, 1.04), center=(0.50, 0.50)),
-    dict(t0=N_WATCH, t1=N_TURN, kind="clip", clip=8, src=0.30, zoom=(1.00, 1.05), center=(0.42, 0.50)),
-    dict(t0=N_TURN, t1=N_CUT, kind="clip", clip=9, src=3.95, speed=2.09 / (N_CUT - N_TURN), zoom=(1.00, 1.00), center=(0.50, 0.50)),
-    dict(t0=N_CUT, t1=N_HELP, kind="clip", clip=10, src=0.00, zoom=(1.00, 1.03), center=(0.45, 0.50)),
-    dict(t0=N_HELP, t1=S0 + SEG_L, kind="clip", clip=10, src=4.35, zoom=(1.12, 1.16), center=(0.38, 0.45)),
+    dict(t0=N_WATCH, t1=N_TURN, kind="clip", clip=8, src=0.00, speed=3.10 / (N_TURN - N_WATCH), zoom=(1.00, 1.05), center=(0.42, 0.50)),
+    dict(t0=N_TURN, t1=N_CUT, kind="clip", clip=9, src=2.60, speed=(6.04 - 2.60) / (N_CUT - N_TURN), zoom=(1.00, 1.00), center=(0.50, 0.50)),
+    dict(t0=N_CUT, t1=N_SHOCK, kind="clip", clip=10, src=0.00, zoom=(1.00, 1.03), center=(0.45, 0.50)),
+    dict(t0=N_SHOCK, t1=DURATION, kind="clip", clip=10, src=6.03 - (DURATION - N_SHOCK), zoom=(1.12, 1.17), center=(0.38, 0.45)),
 ]
-SHOTS.sort(key=lambda s: s['t0'])
+SHOTS.sort(key=lambda s_: s_['t0'])
 
-# 50-minute counter: runs from "בקלי" and locks on 50:00 exactly on "חמישים"
-COUNTER = dict(t_start=d2(2.55), t_lock=d2(4.00), t_end=d2(5.62), pos=(540, 360))
-
-# turn-signal: visible blink onsets measured in clip9 (src seconds)
+COUNTER = dict(t_start=N_WATCH + 0.05, t_lock=d2(4.60), t_end=N_TURN, pos=(540, 360))
 BLINK9_ON = [0.0, 0.875, 1.583, 2.25, 3.0, 3.667, 4.333]
 BLINK_P = 0.70
 
+for k_ in ('final_chord',):
+    MARKS.pop(k_, None)
 MARKS.update(
-    seg_in=S0, seg_out=S0 + SEG_L,
+    end_music=S0,                             # music comes back with the segment
+    seg_in=S0, seg_out=DURATION,
     counter_start=COUNTER['t_start'], counter_lock=COUNTER['t_lock'],
-    victory_build=d2(5.78), victory_hit=d2(7.04) + 0.02, victory_cut=N_CUT,
+    victory_build=d2(5.83), victory_hit=d2(7.04) + 0.03, victory_cut=N_CUT,
     squeal=N_CUT + 0.06,
-    jingle=d2(11.05),
+    blinker_only=d2(11.67) + 0.05,            # from here only the turn signal is heard
 )

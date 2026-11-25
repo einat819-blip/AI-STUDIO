@@ -150,10 +150,11 @@ def blinker_times():
                         anchors.append(tt)
     anchors.sort()
     out = [anchors[0]]
+    for x0, x1 in zip(anchors[:-1], anchors[1:]):      # even spacing between visible blinks (no hiccups)
+        n = max(1, round((x1 - x0) / TL.BLINK_P))
+        out += [x0 + k * (x1 - x0) / n for k in range(1, n + 1)]
     while out[-1] + TL.BLINK_P < b:
-        nxt = out[-1] + TL.BLINK_P
-        near = [x for x in anchors if x > out[-1] + 0.45 and abs(x - nxt) < 0.3]
-        out.append(near[0] if near else nxt)
+        out.append(out[-1] + TL.BLINK_P)
     return out
 
 
@@ -218,16 +219,20 @@ def build():
     r = lambda x: x - t_in
     pts = [(0, -9), (r(7.25), -2), (r(8.42), -3), (r(9.85), -3), (r(9.95), -7), (r(M['clock_in']), -9),
            (r(M['timelapse_in']), -11)]
-    if hasattr(TL, 'S0'):
-        pts += [(r(TL.S0), -11), (r(TL.N_WATCH) - 0.01, -11), (r(TL.N_WATCH), -17), (r(TL.N_TURN) - 0.01, -17),
-                (r(TL.N_TURN), -11), (r(TL.N_CUT) + 0.8, -11), (r(TL.N_CUT) + 1.4, -18), (r(TL.T_BASE) - 0.01, -18)]
     pts += [(r(TL.T_BASE), -12), (r(M['fanfare_in']), -15), (span, -15)]
     g = env(pts, len(bed))
     amb.add(t_in, fade(bed * g[:, None], 0.10, 0.012), 0)
     # the jam slams back on "האדום"
     tb = M['silence_out']; span2 = DURATION - tb
     bed2 = loop_seg(truck, 20.0, span2) * 10 ** (-1 / 20) + loop_seg(van, 8.0, span2) * 10 ** (-4 / 20)
-    g2 = env([(0, -4), (M['end_music'] - tb, -5), (M['end_music'] - tb + 1.2, -13), (span2, -18)], len(bed2))
+    q = lambda x: x - tb
+    p2 = [(0, -4), (q(TL.S0) - 0.01, -5)]
+    if hasattr(TL, 'N_WATCH'):     # left-turn segment: junction outside, muffled inside, then only the blinker
+        p2 += [(q(TL.S0), -11), (q(TL.N_WATCH) - 0.01, -11), (q(TL.N_WATCH), -17), (q(TL.N_TURN) - 0.01, -17),
+               (q(TL.N_TURN), -11), (q(TL.N_CUT) + 0.8, -11), (q(TL.N_CUT) + 1.4, -20),
+               (q(M['blinker_only']) - 0.6, -24), (q(M['blinker_only']), -80)]
+    p2 += [(span2, -80)]
+    g2 = env(p2, len(bed2))
     amb.add(tb, fade(bed2 * g2[:, None], 0.01, 0.5), 0)
 
     # honks: two short ones in the squeeze, one hopeless one after the punch
@@ -272,8 +277,8 @@ def build():
         # the cut-off: SUV whoosh + brakes, matched to her wheel smoking (clip10 0.1-0.9 s)
         fx.add(TL.N_CUT - 0.04, whoosh(), -14)
         ff_bus.add(M['squeal'], tire_squeal(0.85), -14)
-        # "בהצלחה!": game-style success jingle
-        fx.add(M['jingle'], game_jingle(), -15)
+        if 'jingle' in M:      # removed in v4: the last line is "סעו בזהירות!" and only the blinker is heard
+            fx.add(M['jingle'], game_jingle(), -15)
 
     # fanfare: stretched to the sentence, killed dead the instant the sky is revealed
     ff = load('fanfare_st', f'{ROOT}/wav/fanfare_stretched.wav')
@@ -287,12 +292,12 @@ def build():
     gate = np.ones(N)
     gate[int(M['fanfare_cut'] * SR):int(M['end_music'] * SR)] = 0       # music dead from the reveal to the end card
     if 'victory_cut' in M:
-        gate[int(M['victory_cut'] * SR):int((M['roll_in'] - 0.05) * SR)] = 0   # victory music dies on "חתכו"
+        gate[int(M['victory_cut'] * SR):] = 0   # victory music dies on "חתכו" and never returns
     mus *= gate[:, None]
     mix = mus + ducked(amb.x, -5) + ducked(fx.x, -4) + ducked(ff_bus.x, -5) + vo * 10 ** (7.5 / 20)
     n_out = int(DURATION * SR)
     mix = mix[:n_out]
-    mix = fade(mix, 0.0, 0.35)
+    mix = fade(mix, 0.0, 0.008)          # hard cut at the end (8 ms only to avoid a click)
     stems = dict(vo=(vo * 10 ** (7.5 / 20))[:n_out], music=mus[:n_out], fx=(ducked(amb.x, -5) + ducked(fx.x, -4) + ducked(ff_bus.x, -5))[:n_out])
     return mix, stems
 

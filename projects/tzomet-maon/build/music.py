@@ -294,35 +294,36 @@ def build():
         t += 1 / 26
         k += 1
 
-    # ---- End card hits
-    hits = [
-        (TITLES[0][0], ['C3'], ['E4', 'G4', 'C5'], ['C6'], ['E6']),
-        (TITLES[1][0], ['F2'], ['A4', 'C5', 'F5'], ['A6'], ['F6']),
-        (TITLES[2][0], ['G2'], ['F4', 'B4', 'D5'], ['B5'], ['D6']),
-    ]
-    for tt, bass, chord, gls, xys in hits:
-        for n in bass:
-            tr.add(tt, S('pizz', n, t60=0.9, bright=0.3), -11, 0)
-        for k, n in enumerate(chord):
-            tr.add(tt + 0.012 * k, S('pizz', n, t60=0.45, bright=0.5), -18, 0.25)
-        for n in gls:
-            tr.add(tt, S('glock', n), -22, 0.3)
-        for n in xys:
-            tr.add(tt, S('xylo', n), -16, -0.15)
-    # soft walking xylophone between hits, keeps the 'film' feeling alive
-    t1, t2, t3 = TITLES[0][0], TITLES[1][0], TITLES[2][0]
-    walk = [(t1 + 0.55, 'G5'), (t1 + 0.80, 'E5'), (t2 + 0.55, 'C6'), (t2 + 0.80, 'A5'),
-            (t3 + 0.45, 'G5'), (t3 + 0.70, 'F5'), (t3 + 0.85, 'D5')]
-    for tt, n in walk:
-        tr.add(tt, S('xylo', n), -21, -0.2)
-    fc = MARKS['final_chord']
-    for n in ['C2', 'C3']:
-        tr.add(fc, S('pizz', n, t60=1.4, bright=0.3), -7, 0)
-    for k, n in enumerate(['E4', 'G4', 'C5', 'E5']):
-        tr.add(fc + 0.01 * k, S('pizz', n, t60=0.7, bright=0.55), -12, 0.25)
-    tr.add(fc, S('xylo', 'C6'), -10, -0.1)
-    tr.add(fc, S('glock', 'C7'), -13, 0.3)
-    tr.add(fc, S('wood', None, f=900), -18, -0.4)
+    if TITLES:   # end card (removed in v4: the film now ends on "סעו בזהירות!")
+        # ---- End card hits
+        hits = [
+            (TITLES[0][0], ['C3'], ['E4', 'G4', 'C5'], ['C6'], ['E6']),
+            (TITLES[1][0], ['F2'], ['A4', 'C5', 'F5'], ['A6'], ['F6']),
+            (TITLES[2][0], ['G2'], ['F4', 'B4', 'D5'], ['B5'], ['D6']),
+        ]
+        for tt, bass, chord, gls, xys in hits:
+            for n in bass:
+                tr.add(tt, S('pizz', n, t60=0.9, bright=0.3), -11, 0)
+            for k, n in enumerate(chord):
+                tr.add(tt + 0.012 * k, S('pizz', n, t60=0.45, bright=0.5), -18, 0.25)
+            for n in gls:
+                tr.add(tt, S('glock', n), -22, 0.3)
+            for n in xys:
+                tr.add(tt, S('xylo', n), -16, -0.15)
+        # soft walking xylophone between hits, keeps the 'film' feeling alive
+        t1, t2, t3 = TITLES[0][0], TITLES[1][0], TITLES[2][0]
+        walk = [(t1 + 0.55, 'G5'), (t1 + 0.80, 'E5'), (t2 + 0.55, 'C6'), (t2 + 0.80, 'A5'),
+                (t3 + 0.45, 'G5'), (t3 + 0.70, 'F5'), (t3 + 0.85, 'D5')]
+        for tt, n in walk:
+            tr.add(tt, S('xylo', n), -21, -0.2)
+        fc = MARKS['final_chord']
+        for n in ['C2', 'C3']:
+            tr.add(fc, S('pizz', n, t60=1.4, bright=0.3), -7, 0)
+        for k, n in enumerate(['E4', 'G4', 'C5', 'E5']):
+            tr.add(fc + 0.01 * k, S('pizz', n, t60=0.7, bright=0.55), -12, 0.25)
+        tr.add(fc, S('xylo', 'C6'), -10, -0.1)
+        tr.add(fc, S('glock', 'C7'), -13, 0.3)
+        tr.add(fc, S('wood', None, f=900), -18, -0.4)
 
     out = reverb(tr.buf, t60=1.0, wet=0.22)
     # gentle bus glue: highpass + soft clip
