@@ -11,6 +11,31 @@ FONT_RUBIK = f'{ROOT}/fonts/Rubik.ttf'
 FONT_HEEBO = f'{ROOT}/fonts/Heebo.ttf'
 LOGO = f'{ROOT}/assets/logo.webp'
 SRC_FPS = 24
+LAYOUT = dict(sub_y=1250, logo_y=262, logo_right=58, cal=(540, 470, 1.0))
+
+# 1:1 (Facebook feed) framing: same edit, per-shot vertical framing so faces and action stay in
+# the square, overlays moved for a 1080x1080 frame. Index = position in the sorted SHOTS list.
+SQUARE_CENTERS = {
+    0: (0.50, 0.56), 1: (0.50, 0.55), 2: (0.60, 0.68), 3: (0.50, 0.36), 4: (0.55, 0.36),
+    5: (0.50, 0.45), 6: (0.50, 0.50), 7: (0.50, 0.52), 8: (0.50, 0.38), 9: (0.50, 0.36),
+    10: (0.50, 0.55), 11: (0.50, 0.60), 12: (0.50, 0.62), 13: (0.40, 0.45), 14: (0.50, 0.45),
+    15: (0.50, 0.36), 16: (0.42, 0.45), 17: (0.50, 0.45), 18: (0.45, 0.50), 19: (0.42, 0.45),
+}
+
+
+def apply_square():
+    global W, H
+    W, H = 1080, 1080
+    LAYOUT.update(sub_y=880, logo_y=72, logo_right=46, cal=(540, 255, 0.72))
+    COUNTER['pos'] = (540, 150)
+    assert len(SHOTS) == 21 and SHOTS[-1]['kind'] == 'endcards', 'square framing table is for the v4.2 edit'
+    for i, s_ in enumerate(SHOTS):
+        if i in SQUARE_CENTERS:
+            s_['center'] = SQUARE_CENTERS[i]
+    dy = (1920 - 1080) / 2
+    ENDCARDS['lines'] = [(t, wg, sz, col, y - dy, a, b) for t, wg, sz, col, y, a, b in ENDCARDS['lines']]
+    la, ly, lw = ENDCARDS['logo']
+    ENDCARDS['logo'] = (la, ly - dy, lw)
 
 
 def font(path, size, wght):
@@ -329,7 +354,7 @@ def render_frame(t, ov, draft=True):
             k = (t - a) * FPS
             alpha = 1.0 if a == 0 else min(1.0, (k + 1) / 3)       # hook text is fully visible on frame 1
             sc = 1.0 if a == 0 else 0.93 + 0.07 * ease((k + 1) / 5)
-            composite(frame, ov['subs'][i], 540, 1250, alpha, sc)
+            composite(frame, ov['subs'][i], 540, LAYOUT['sub_y'], alpha, sc)
     if 'COUNTER' in globals():
         draw_counter(frame, t, ov)
     # end titles
@@ -342,7 +367,7 @@ def render_frame(t, ov, draft=True):
             composite(frame, ov['titles'][i], 540, ys[i], alpha, sc)
     # logo: small, top-right, below the app UI (safe zone)
     lg = ov['logo']
-    composite(frame, lg, W - 58 - (lg.shape[1] - 24) / 2, 262, 0.9)
+    composite(frame, lg, W - LAYOUT['logo_right'] - (lg.shape[1] - 24) / 2, LAYOUT['logo_y'], 0.9)
     if draft and DRAFT_LABEL:
         dl = ov['draft']
         composite(frame, dl, 40 + dl.shape[1] / 2, 70, 1.0)
@@ -367,14 +392,14 @@ def draw_calendar(frame, t, s, ov):
     pages = ov['cal']
     ticks = accel_times(s['t0'], s['t1'] - 0.15)
     departs = ticks[1:len(pages)]
-    cx, cy = 540, 470
+    cx, cy, cs = LAYOUT['cal']
     pop = ease((t - s['t0']) / 0.18)
     top = sum(1 for d in departs if t >= d)
     # page underneath first
     if top + 1 < len(pages):
-        composite(frame, pages[top + 1], cx, cy, pop)
+        composite(frame, pages[top + 1], cx, cy, pop, cs)
     if top < len(pages):
-        composite(frame, pages[top], cx, cy, pop, 0.85 + 0.15 * pop)
+        composite(frame, pages[top], cx, cy, pop, cs * (0.85 + 0.15 * pop))
     # flying pages
     for j, d in enumerate(departs):
         p = (t - d) / 0.38
@@ -384,7 +409,7 @@ def draw_calendar(frame, t, s, ov):
             M = cv2.getRotationMatrix2D((pg.shape[1] / 2, pg.shape[0] / 2), ang, 1.0 - 0.12 * p)
             rot = cv2.warpAffine(pg, M, (pg.shape[1], pg.shape[0]), flags=cv2.INTER_LINEAR, borderValue=(0, 0, 0, 0))
             al = 1.0 if p < 0.55 else 1 - (p - 0.55) / 0.45
-            composite(frame, rot, cx + 400 * p ** 0.85, cy - 130 * p - 380 * p * p, al)
+            composite(frame, rot, cx + cs * 400 * p ** 0.85, cy - cs * (130 * p + 380 * p * p), al, cs)
 
 
 # ----------------------------------------------------------------- main
@@ -394,7 +419,10 @@ if __name__ == '__main__':
     ap.add_argument('--audio', default=None)
     ap.add_argument('--stills', default=None, help='comma list of times -> PNGs instead of video')
     ap.add_argument('--no-draft', action='store_true')
+    ap.add_argument('--square', action='store_true', help='1080x1080 version for the Facebook feed')
     a = ap.parse_args()
+    if a.square:
+        apply_square()
     for i in sorted({s['clip'] for s in SHOTS if 'clip' in s}):
         CLIPS[i] = load_clip(i)
     ov = build_overlays()

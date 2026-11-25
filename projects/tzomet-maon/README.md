@@ -86,6 +86,14 @@ ffmpeg -i wav/fanfare_success.wav -af "rubberband=tempo=0.85" -ar 48000 -ac 2 wa
 
 המוזיקה מקורית, ונוצרת בקוד ב `build/music.py`. אין בה חומר של צד שלישי.
 
+## גרסה ריבועית 1:1 לפייסבוק
+
+אותה עריכה ואותו סאונד בגודל 1080×1080. לכל שוט יש מסגור אנכי משלו כדי שהפנים והפעולה יישארו בתוך הריבוע (הטבלה SQUARE_CENTERS ב `build/render.py`). הכתוביות, הלוגו, המונה ולוח השנה ממוקמים מחדש בהתאם.
+
+```bash
+python3 build/render.py --square --out out/tzomet_maon_square_1x1.mp4 --audio out/mix_master.wav
+```
+
 ## מפרט הייצוא
 
 1080×1920, 30 FPS, H.264 High, AAC 320k. עוצמה מינוס 14 LUFS, שיא אמיתי מינוס 1.7 dBTP.
