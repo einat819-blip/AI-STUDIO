@@ -174,7 +174,53 @@ def build_overlays():
         ov['slates'][s['t0']] = np.array(im)
     # calendar pages
     ov['cal'] = calendar_pages()
+    if 'COUNTER' in globals():
+        ov['counter'] = {k: counter_glyphs(c) for k, c in (('run', (255, 255, 255)), ('lock', (255, 214, 64)))}
     return ov
+
+
+def counter_glyphs(color):
+    f = font(FONT_RUBIK, 118, 800)
+    cell = int(max(f.getlength(ch) for ch in '0123456789')) + 4
+    g = {}
+    for ch in '0123456789:':
+        w = cell if ch != ':' else int(f.getlength(':')) + 10
+        im = Image.new('RGBA', (w + 16, 160), (0, 0, 0, 0))
+        ImageDraw.Draw(im).text(((w + 16) / 2, 80), ch, font=f, fill=color + (255,), anchor='mm',
+                                stroke_width=4, stroke_fill=(10, 10, 10, 255))
+        g[ch] = im
+    return g
+
+
+def counter_image(text, glyphs):
+    ws = [glyphs[ch].width for ch in text]
+    bw, bh = sum(ws) + 64, 196
+    im = Image.new('RGBA', (bw, bh), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    d.rounded_rectangle((6, 6, bw - 7, bh - 7), 34, fill=(14, 14, 18, 190), outline=(255, 255, 255, 70), width=3)
+    x = 32
+    for ch, w in zip(text, ws):
+        im.alpha_composite(glyphs[ch], (x, 18))
+        x += w
+    return rgba_np(shadowed(im, radius=8, offset=(0, 6), opacity=0.5))
+
+
+def draw_counter(frame, t, ov):
+    c = COUNTER
+    if not (c['t_start'] <= t < c['t_end']):
+        return
+    u = min(1.0, (t - c['t_start']) / (c['t_lock'] - c['t_start']))
+    secs = int(round(3000 * u ** 1.7)) if t < c['t_lock'] else 3000
+    text = f'{secs // 60:02d}:{secs % 60:02d}'
+    locked = t >= c['t_lock']
+    img = counter_image(text, ov['counter']['lock' if locked else 'run'])
+    alpha = min(1.0, (t - c['t_start']) * FPS / 3, (c['t_end'] - t) * FPS / 4)
+    if locked:
+        k = (t - c['t_lock']) / 0.28
+        sc = 1.18 + 0.16 * max(0.0, 1 - k) * (1 if k < 1 else 0)
+    else:
+        sc = 0.92 + 0.08 * ease((t - c['t_start']) * FPS / 5)
+    composite(frame, img, c['pos'][0], c['pos'][1], alpha, sc)
 
 
 CAL_PAGES = [(25, 'נובמבר'), (26, 'נובמבר'), (27, 'נובמבר'), (4, 'דצמבר'), (19, 'דצמבר'), (8, 'ינואר'),
@@ -267,6 +313,8 @@ def render_frame(t, ov, draft=True):
             alpha = 1.0 if a == 0 else min(1.0, (k + 1) / 3)       # hook text is fully visible on frame 1
             sc = 1.0 if a == 0 else 0.93 + 0.07 * ease((k + 1) / 5)
             composite(frame, ov['subs'][i], 540, 1250, alpha, sc)
+    if 'COUNTER' in globals():
+        draw_counter(frame, t, ov)
     # end titles
     ys = TITLE_Y
     for i, (a, txt, col) in enumerate(TITLES):

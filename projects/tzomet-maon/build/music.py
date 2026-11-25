@@ -95,6 +95,15 @@ def snare(dur=0.2):
     return y / (np.abs(y).max() + 1e-9)
 
 
+def cymbal(dur=1.6):
+    t = np.arange(int(dur * SR)) / SR
+    n = rng.normal(0, 1, len(t))
+    b, a = signal.butter(2, 3500 / (SR / 2), 'high')
+    y = signal.lfilter(b, a, n) * (np.exp(-t / 0.35) * 0.8 + np.exp(-t / 0.05) * 0.6)
+    y *= np.minimum(1, t / 0.002)
+    return y / (np.abs(y).max() + 1e-9)
+
+
 def shaker(dur=0.15):
     t = np.arange(int(dur * SR)) / SR
     n = rng.normal(0, 1, len(t))
@@ -169,7 +178,7 @@ def S(kind, note, **kw):
     if key not in cache:
         f = hz(note) if note is not None else None
         cache[key] = {'pizz': lambda: pizz(f, **kw), 'xylo': lambda: xylo(f), 'glock': lambda: glock(f),
-                      'wood': lambda: woodblock(**kw), 'shaker': lambda: shaker(), 'snare': lambda: snare()}[kind]()
+                      'wood': lambda: woodblock(**kw), 'shaker': lambda: shaker(), 'snare': lambda: snare(), 'cymbal': lambda: cymbal()}[kind]()
     return cache[key]
 
 
@@ -228,6 +237,53 @@ def build():
     for j, tt in enumerate(times):
         note = 52 + (j // 3)            # rising, one semitone every 3 hits
         tr.add(tt, S('pizz', note, t60=0.25, bright=0.35), -16 + 6 * j / len(times), 0.2 if j % 2 else -0.2)
+
+    # ---- v3 insert: left turn from Ofakim
+    if 'seg_in' in MARKS:
+        s0, lock = MARKS['seg_in'], MARKS['counter_lock']
+        # innocent theme returns under the blinker
+        for bi in range(3):
+            t0 = s0 + bi * BAR
+            bass, chord = CH[CHORDS_A[bi]]
+            for beat, note in [(0, bass[0]), (2, bass[1])]:
+                tt = t0 + beat * BEAT
+                if tt < lock - 0.02:
+                    tr.add(tt, S('pizz', note, t60=0.75, bright=0.3), -6, 0.0)
+            for beat in (1, 3):
+                tt = t0 + beat * BEAT
+                if tt < lock - 0.02:
+                    for k, n in enumerate(chord):
+                        tr.add(tt + 0.004 * k, S('pizz', n, t60=0.3, bright=0.5), -15, 0.3)
+            for beat, n in MEL[bi]:
+                tt = t0 + beat * BEAT
+                if tt < lock - 0.02:
+                    tr.add(tt, S('xylo', n), -10, -0.15)
+        # counter locks on 50:00 -> one bright ding, then the music is gone
+        tr.add(lock, S('glock', 'C7'), -12, 0.1)
+        tr.add(lock, S('xylo', 'G6'), -15, -0.1)
+        # victory: rising build from "ובסוף", C major hit under the trumpet, celebration cut dead
+        vb, vh = MARKS['victory_build'], MARKS['victory_hit']
+        arp = ['C4', 'E4', 'G4', 'C5', 'E5', 'G5', 'C6']
+        n_b = int((vh - vb) / 0.125)
+        for j in range(n_b):
+            tt = vb + j * 0.125
+            tr.add(tt, S('pizz', arp[j % len(arp)] if j < 7 else arp[(j % 3) + 4], t60=0.25, bright=0.45),
+                   -24 + 12 * j / max(1, n_b - 1), 0.25 if j % 2 else -0.25)
+        for n in ['C2', 'C3']:
+            tr.add(vh, S('pizz', n, t60=1.2, bright=0.3), -5, 0)
+        for k, n in enumerate(['C4', 'E4', 'G4', 'C5']):
+            tr.add(vh + 0.008 * k, S('pizz', n, t60=0.6, bright=0.6), -11, 0.25)
+        tr.add(vh, S('glock', 'C7'), -14, 0.3)
+        tr.add(vh, S('xylo', 'E6'), -12, -0.2)
+        tr.add(vh, S('cymbal', None), -14, 0.0)
+        run = [(0.25, 'G5'), (0.375, 'C6'), (0.5, 'E6'), (0.625, 'G6'), (0.75, 'E6'), (0.875, 'C6')]
+        for dt, n in run:
+            tr.add(vh + dt, S('xylo', n), -15, -0.15)
+        for dt, n in [(0.25, 'G2'), (0.5, 'C3'), (0.75, 'G2')]:
+            tr.add(vh + dt, S('pizz', n, t60=0.5, bright=0.3), -10, 0)
+        for dt in (0.375, 0.625, 0.875):
+            for k, n in enumerate(['E4', 'G4', 'C5']):
+                tr.add(vh + dt + 0.004 * k, S('pizz', n, t60=0.3, bright=0.5), -17, 0.3)
 
     # ---- "והנה לכם..." : snare roll crescendo into the fanfare (fanfare itself is an SFX)
     t, k = MARKS['roll_in'], 0
