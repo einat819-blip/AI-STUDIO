@@ -210,3 +210,10 @@ MARKS.update(
     squeal=N_CUT + 0.06,
     blinker_only=d2(11.67) + 0.05,            # from here only the turn signal is heard
 )
+
+# v4.1: the work-site beat ("תוסיפו עבודות!") uses the dedicated clip supplied for it (clip11:
+# excavator + foreman spreading his arms). Same in/out times as before, nothing else moves.
+_w0, _w1 = 9.87, T_DATE
+SHOTS = [s_ for s_ in SHOTS if not (_w0 - 1e-6 <= s_['t0'] < _w1 - 1e-6)]
+SHOTS.append(dict(t0=_w0, t1=_w1, kind="clip", clip=11, src=1.95, zoom=(1.00, 1.04), center=(0.50, 0.50)))
+SHOTS.sort(key=lambda s_: s_['t0'])
