@@ -10,6 +10,7 @@ remain where the old AI logo was.
 Run:  python3 scripts/make_endcard.py
 """
 import os
+import sys
 import numpy as np
 import cv2
 from PIL import Image, ImageFilter
@@ -118,5 +119,50 @@ def main():
     print("endcard written to", os.path.abspath(OUT))
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and len(sys.argv) == 1:
     main()
+
+
+# ----------------------------------------------------------------- v4: short, clean end cards
+# Card 1: "*הפריפריה נמכרת בנפרד." (the yellow brush from the supplied card)
+# Card 2: original logo + "המציאות כותבת את התסריט. / אני רק מנפישה אותה."
+def build_v4():
+    from PIL import ImageDraw, ImageFont
+    clean = np.asarray(Image.open(os.path.join(OUT, "endcard_clean.png")).convert("RGB")).astype(np.float32)
+    final = np.asarray(Image.open(os.path.join(OUT, "endcard_final.png")).convert("RGB")).astype(np.float32)
+    rng = np.random.default_rng(5)
+    bg = clean.copy()
+    for y0, y1 in [(616, 658), (1484, 1524)]:  # remove the two gold separator lines
+        fill = coons(bg, y0, y1, 0, W)
+        fill += rng.normal(0, 0.9, fill.shape).astype(np.float32)
+        m = rect_mask(y0, y1, 0, W, feather=3, inset=3)[y0:y1, :, None]
+        bg[y0:y1] = bg[y0:y1] * (1 - m) + fill * m
+    Image.fromarray(np.clip(bg, 0, 255).astype(np.uint8)).save(os.path.join(OUT, "v4_bg.png"))
+
+    # brush cut-out: yellow paint + the dark text inside it
+    y0, y1 = 400, 615
+    blk = final[y0:y1].astype(np.uint8)
+    hsv = cv2.cvtColor(blk, cv2.COLOR_RGB2HSV)
+    yellow = ((hsv[..., 0] > 12) & (hsv[..., 0] < 40) & (hsv[..., 1] > 110) & (hsv[..., 2] > 140)).astype(np.uint8)
+    shape = cv2.morphologyEx(yellow, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (31, 31)))
+    shape = cv2.morphologyEx(shape, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+    alpha = cv2.GaussianBlur(shape.astype(np.float32), (0, 0), 1.2)
+    ys, xs = np.where(shape > 0)
+    a0, a1, b0, b1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    rgba = np.dstack([blk[a0:a1, b0:b1], (alpha[a0:a1, b0:b1] * 255).astype(np.uint8)])
+    Image.fromarray(rgba, "RGBA").save(os.path.join(OUT, "v4_brush.png"))
+
+    # tagline re-set in Heebo so it is crisp at any size
+    font = ImageFont.truetype(os.path.join(ROOT, "assets", "fonts", "Heebo-Bold.ttf"), 54)
+    lines = ["המציאות כותבת את התסריט.", "אני רק מנפישה אותה."]
+    img = Image.new("RGBA", (W, 170), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for k, ln in enumerate(lines):
+        d.text((W // 2, 40 + k * 80), ln, font=font, fill=(245, 245, 245, 255), anchor="mm", direction="rtl",
+               language="he")
+    img.save(os.path.join(OUT, "v4_tagline.png"))
+    print("v4 end card assets written")
+
+
+if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == "v4":
+    build_v4()

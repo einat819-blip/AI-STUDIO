@@ -1,0 +1,434 @@
+{
+  "total_sec": 51.733,
+  "draft": false,
+  "segments": [
+    {
+      "id": "1",
+      "shot": 1,
+      "kind": "clip",
+      "start": 0.0,
+      "dur": 3.1,
+      "src": "source/clips/S01_courier_billboard.mp4",
+      "tin": 0.0,
+      "tout": 3.1,
+      "zoom": 1.0
+    },
+    {
+      "id": "2",
+      "shot": 2,
+      "kind": "clip",
+      "start": 3.1,
+      "dur": 1.333,
+      "src": "source/clips/S02_curly_orders_laptop.mp4",
+      "tin": 3.75,
+      "tout": 5.07,
+      "zoom": 1.0
+    },
+    {
+      "id": "3",
+      "shot": 3,
+      "kind": "clip",
+      "start": 4.433,
+      "dur": 4.767,
+      "src": "source/clips/S03_agent_shock_eshkol.mp4",
+      "tin": 0.9,
+      "tout": 5.68,
+      "zoom": 1.0
+    },
+    {
+      "id": "4",
+      "shot": 4,
+      "kind": "clip",
+      "start": 9.2,
+      "dur": 2.2,
+      "src": "source/clips/S05a_agent_thumbs_up.mp4",
+      "tin": 0.0,
+      "tout": 2.2,
+      "zoom": 1.0
+    },
+    {
+      "id": "5a",
+      "shot": 5,
+      "kind": "clip",
+      "start": 11.4,
+      "dur": 0.9,
+      "src": "source/clips/S05a_agent_thumbs_up.mp4",
+      "tin": 3.2,
+      "tout": 4.1,
+      "zoom": 1.0
+    },
+    {
+      "id": "5b",
+      "shot": 5,
+      "kind": "clip",
+      "start": 12.3,
+      "dur": 0.833,
+      "src": "source/clips/S05a_agent_thumbs_up.mp4",
+      "tin": 4.58,
+      "tout": 5.4,
+      "zoom": 1.18
+    },
+    {
+      "id": "6a",
+      "shot": 6,
+      "kind": "clip",
+      "start": 13.133,
+      "dur": 2.9,
+      "src": "source/clips/S06_doorstep_credit_card.mp4",
+      "tin": 0.55,
+      "tout": 3.45,
+      "zoom": 1.0
+    },
+    {
+      "id": "6b",
+      "shot": 6,
+      "kind": "clip",
+      "start": 16.033,
+      "dur": 0.733,
+      "src": "source/clips/S06_doorstep_credit_card.mp4",
+      "tin": 4.85,
+      "tout": 5.6,
+      "zoom": 1.25
+    },
+    {
+      "id": "7",
+      "shot": 7,
+      "kind": "clip",
+      "start": 16.767,
+      "dur": 4.467,
+      "src": "source/clips/S07_pickup_point_boxes.mp4",
+      "tin": 1.0,
+      "tout": 5.45,
+      "zoom": 1.0
+    },
+    {
+      "id": "8",
+      "shot": 8,
+      "kind": "clip",
+      "start": 21.233,
+      "dur": 4.667,
+      "src": "source/clips/S08_courier_binoculars_map.mp4",
+      "tin": 0.55,
+      "tout": 5.2,
+      "zoom": 1.0
+    },
+    {
+      "id": "9",
+      "shot": 9,
+      "kind": "clip",
+      "start": 25.9,
+      "dur": 2.333,
+      "src": "source/clips/S09_curly_israel_flag.mp4",
+      "tin": 1.85,
+      "tout": 4.2,
+      "zoom": 1.0
+    },
+    {
+      "id": "10",
+      "shot": 10,
+      "kind": "clip",
+      "start": 28.233,
+      "dur": 3.667,
+      "src": "source/clips/S10_agent_distribution_map.mp4",
+      "tin": 0.53,
+      "tout": 4.2,
+      "zoom": 1.12
+    },
+    {
+      "id": "11a",
+      "shot": 11,
+      "kind": "clip",
+      "start": 31.9,
+      "dur": 1.033,
+      "src": "source/clips/S11_package_world_journey.mp4",
+      "tin": 0.0,
+      "tout": 1.02,
+      "zoom": 1.0
+    },
+    {
+      "id": "11b",
+      "shot": 11,
+      "kind": "clip",
+      "start": 32.933,
+      "dur": 1.067,
+      "src": "source/clips/S11_package_world_journey.mp4",
+      "tin": 1.02,
+      "tout": 2.1,
+      "zoom": 1.3
+    },
+    {
+      "id": "11c",
+      "shot": 11,
+      "kind": "clip",
+      "start": 34.0,
+      "dur": 1.433,
+      "src": "source/clips/S11_package_world_journey.mp4",
+      "tin": 2.1,
+      "tout": 3.55,
+      "zoom": 1.28
+    },
+    {
+      "id": "11d",
+      "shot": 11,
+      "kind": "clip",
+      "start": 35.433,
+      "dur": 1.3,
+      "src": "source/clips/S11_package_world_journey.mp4",
+      "tin": 3.55,
+      "tout": 4.85,
+      "zoom": 1.05
+    },
+    {
+      "id": "11e",
+      "shot": 11,
+      "kind": "clip",
+      "start": 36.733,
+      "dur": 1.167,
+      "src": "source/clips/S11_package_world_journey.mp4",
+      "tin": 4.85,
+      "tout": 6.03,
+      "zoom": 1.22
+    },
+    {
+      "id": "12a",
+      "shot": 12,
+      "kind": "clip",
+      "start": 37.9,
+      "dur": 1.867,
+      "src": "source/clips/S12_courier_survival_gear.mp4",
+      "tin": 0.0,
+      "tout": 1.85,
+      "zoom": 1.0
+    },
+    {
+      "id": "12b",
+      "shot": 12,
+      "kind": "clip",
+      "start": 39.767,
+      "dur": 0.733,
+      "src": "source/clips/S12_courier_survival_gear.mp4",
+      "tin": 2.6,
+      "tout": 3.35,
+      "zoom": 1.04
+    },
+    {
+      "id": "12c",
+      "shot": 12,
+      "kind": "clip",
+      "start": 40.5,
+      "dur": 1.5,
+      "src": "source/clips/S12_courier_survival_gear.mp4",
+      "tin": 3.6,
+      "tout": 5.1,
+      "zoom": 1.06
+    },
+    {
+      "id": "13a",
+      "shot": 13,
+      "kind": "clip",
+      "start": 42.0,
+      "dur": 2.367,
+      "src": "source/clips/S01_courier_billboard.mp4",
+      "tin": 0.0,
+      "tout": 2.36,
+      "zoom": 1.0
+    },
+    {
+      "id": "13b",
+      "shot": 13,
+      "kind": "clip",
+      "start": 44.367,
+      "dur": 1.367,
+      "src": "source/clips/S13_curly_uniform_billboard.mp4",
+      "tin": 0.0,
+      "tout": 1.36,
+      "zoom": 1.0
+    },
+    {
+      "id": "13c",
+      "shot": 13,
+      "kind": "clip",
+      "start": 45.733,
+      "dur": 1.4,
+      "src": "source/clips/S13_curly_uniform_billboard.mp4",
+      "tin": 4.4,
+      "tout": 5.81,
+      "zoom": 1.08
+    },
+    {
+      "id": "14",
+      "shot": 14,
+      "kind": "endcard_v4",
+      "start": 47.133,
+      "dur": 4.6,
+      "src": null,
+      "tin": null,
+      "tout": null,
+      "zoom": 1.0
+    }
+  ],
+  "captions": [
+    {
+      "start": 0.1,
+      "end": 1.88,
+      "text": "משלוחים לכל חלקי הארץ!",
+      "shown": false
+    },
+    {
+      "start": 2.04,
+      "end": 4.25,
+      "text": "מהירים, נוחים\\Nועד פתח הבית!",
+      "shown": true
+    },
+    {
+      "start": 4.49,
+      "end": 4.9,
+      "text": "רגע...",
+      "shown": true
+    },
+    {
+      "start": 5.1,
+      "end": 5.78,
+      "text": "איפה אתם גרים?",
+      "shown": true
+    },
+    {
+      "start": 5.96,
+      "end": 6.56,
+      "text": "אשכול?!",
+      "shown": true
+    },
+    {
+      "start": 7.31,
+      "end": 7.92,
+      "text": "אה...",
+      "shown": true
+    },
+    {
+      "start": 8.18,
+      "end": 9.75,
+      "text": "אז יש לנו כמה אפשרויות!",
+      "shown": true
+    },
+    {
+      "start": 9.99,
+      "end": 11.24,
+      "text": "משלוח פעם בשבוע!",
+      "shown": true
+    },
+    {
+      "start": 11.45,
+      "end": 12.04,
+      "text": "באיזה יום?",
+      "shown": true
+    },
+    {
+      "start": 12.32,
+      "end": 12.97,
+      "text": "כשיהיה נהג.",
+      "shown": true
+    },
+    {
+      "start": 13.23,
+      "end": 14.6,
+      "text": "משלוח עד הבית!",
+      "shown": true
+    },
+    {
+      "start": 14.9,
+      "end": 15.77,
+      "text": "בתוספת תשלום,",
+      "shown": true
+    },
+    {
+      "start": 16.17,
+      "end": 16.49,
+      "text": "כמובן.",
+      "shown": true
+    },
+    {
+      "start": 16.87,
+      "end": 17.99,
+      "text": "או נקודת איסוף!",
+      "shown": false
+    },
+    {
+      "start": 18.24,
+      "end": 20.25,
+      "text": "כי למה שאנחנו ניסע,\\Nאם אתם יכולים?",
+      "shown": true
+    },
+    {
+      "start": 21.33,
+      "end": 22.8,
+      "text": "ויש גם מסלול מיוחד!",
+      "shown": true
+    },
+    {
+      "start": 23.53,
+      "end": 24.7,
+      "text": "אנחנו לא מגיעים לשם.",
+      "shown": true
+    },
+    {
+      "start": 26.0,
+      "end": 27.9,
+      "text": "אבל רגע...\\Nאנחנו לא בישראל?!",
+      "shown": true
+    },
+    {
+      "start": 28.28,
+      "end": 29.58,
+      "text": "בטח שאתם בישראל!",
+      "shown": true
+    },
+    {
+      "start": 29.88,
+      "end": 31.13,
+      "text": "פשוט לא\\Nבאזור החלוקה.",
+      "shown": true
+    },
+    {
+      "start": 32.0,
+      "end": 35.39,
+      "text": "החבילה שלכם חצתה\\Nיבשות, ימים ואוקיינוסים.",
+      "shown": true
+    },
+    {
+      "start": 35.68,
+      "end": 37.88,
+      "text": "הגיעה כל הדרך\\Nמסין לישראל!",
+      "shown": true
+    },
+    {
+      "start": 38.3,
+      "end": 39.62,
+      "text": "אבל להגיע לאשכול?",
+      "shown": true
+    },
+    {
+      "start": 40.68,
+      "end": 41.44,
+      "text": "בואו לא נגזים.",
+      "shown": true
+    },
+    {
+      "start": 42.1,
+      "end": 43.91,
+      "text": "משלוחים לכל חלקי הארץ!",
+      "shown": false
+    },
+    {
+      "start": 44.42,
+      "end": 45.33,
+      "text": "חוץ מהחלק שלכם.",
+      "shown": false
+    },
+    {
+      "start": 45.78,
+      "end": 46.39,
+      "text": "בהצלחה!",
+      "shown": false
+    }
+  ]
+}
