@@ -253,10 +253,13 @@ def build_captions(E, by_id, total, words_override=None):
         start = at(by_id, seg, off)
         words, end = estimate_words(text, start)
         lines.append(dict(idx=i, text=text, hl=hl, opt=opt, start=start, end=end, words=words))
-    if words_override:  # real timings from transcription: {"lines": [[{"w":..,"start":..,"end":..}, ...], ...]}
+    if words_override:  # real word times (narration seconds) re-anchored to each line's placement
         for ln, real in zip(lines, words_override["lines"]):
-            ln["words"] = [(w["w"], w["start"], w["end"]) for w in real]
-            ln["start"], ln["end"] = real[0]["start"], real[-1]["end"]
+            t0 = real[0]["start"]
+            anchor = ln["start"]
+            # captions lead the voice by 2 frames so each word is readable as it is spoken
+            ln["words"] = [(w["w"], anchor + w["start"] - t0 - 0.066, anchor + w["end"] - t0) for w in real]
+            ln["end"] = anchor + real[-1]["end"] - t0
     events = []
     shown = [l for l in lines if l["opt"].get("caption", True)]
     for k, ln in enumerate(shown):
@@ -320,7 +323,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             rows.append(f"Dialogue: 0,{ass_time(s)},{ass_time(e)},SlateTitle,,0,0,0,,{{\\pos(540,700)}}{sg['title']}")
             desc = sg["desc"].replace("\n", "\\N")
             rows.append(f"Dialogue: 0,{ass_time(s)},{ass_time(e)},SlateDesc,,0,0,0,,{{\\pos(540,840)}}{desc}")
-    if draft:
+    if draft and E.DRAFT_LABEL:
         total = segs[-1]["start"] + segs[-1]["dur"]
         t_draft_end = next((sg["start"] for sg in segs if sg["kind"] == "endcard"), total)
         rows.append(f"Dialogue: 2,{ass_time(0)},{ass_time(t_draft_end)},Draft,,0,0,0,,{{\\an7\\pos(44,140)}}{E.DRAFT_LABEL}")
@@ -341,7 +344,7 @@ def db(g):
     return 10 ** (g / 20)
 
 
-def mix_audio(E, by_id, total, narration=None, vo_spans=None):
+def mix_audio(E, by_id, total, narration=None, vo_spans=None, words=None):
     n = int(round((total + 0.5) * SR))
     music = np.zeros((n, 2))
     sfx = np.zeros((n, 2))
@@ -387,19 +390,68 @@ def mix_audio(E, by_id, total, narration=None, vo_spans=None):
     # ducking: music dips under the voice (real narration envelope, or the
     # estimated VO spans in draft mode so SFX/music balance matches the final)
     if narration is not None:
-        vo = narration[:n]
-        vo = np.pad(vo, ((0, n - len(vo)), (0, 0)))
+        vo = np.zeros((n, 2))
+        prev_end = -1.0
+        for i, (seg, off, _t, _h, opt) in enumerate(E.VO):
+            c0, c1 = words["chunks"][i]
+            w0 = words["lines"][i][0]["start"]
+            t_place = at(by_id, seg, off) - (w0 - c0)
+            speech_start = at(by_id, seg, off)
+            if speech_start < prev_end + 0.05:
+                print(f"  WARNING: VO line {i} starts {prev_end - speech_start:+.2f}s into the previous line's speech")
+            chunk = narration[int(c0 * SR):int(c1 * SR)].copy() * db(opt.get("gain_db", 0.0))
+            k = int(0.008 * SR)
+            chunk[:k] *= np.linspace(0, 1, k)[:, None]
+            chunk[-k:] *= np.linspace(1, 0, k)[:, None]
+            i0 = int(round(t_place * SR))
+            vo[i0:i0 + len(chunk)] += chunk[: max(0, n - i0)]
+            prev_end = speech_start + words["lines"][i][-1]["end"] - w0
         env = np.abs(signal.hilbert(vo.mean(1)))
         env = signal.sosfilt(signal.butter(2, 8, fs=SR, output="sos"), env)
         talk = (env > db(-38)).astype(float)
+        for a, b in (vo_spans or []):  # extra dips (e.g. key SFX with no voice)
+            talk[int(a * SR):int(b * SR)] = 1.0
     else:
         vo = np.zeros((n, 2))
         talk = np.zeros(n)
         for a, b in (vo_spans or []):
             talk[int(a * SR):int(b * SR)] = 1.0
-    g = smooth_gate(talk, 0.04, 0.35)
-    music *= (db(-9) ** g)[:, None]
-    return vo + music * db(-6) + sfx * db(-3)
+    g = smooth_gate(talk, 0.03, 0.18)
+    gain = db(DUCK_DB) ** g  # fixed dip under the voice
+    if narration is not None:
+        # dynamic part: keep the music at least VO_OVER_MUSIC_DB under the voice's short-term level
+        rate = 100
+        step = SR // rate
+        nfr = n // step
+
+        def env(x):
+            p = (x.mean(1)[: nfr * step] ** 2).reshape(nfr, step).mean(1)
+            k = 15  # 150 ms window
+            p = np.convolve(p, np.ones(k) / k, mode="same")
+            return np.sqrt(p + 1e-12)
+
+        ve, me = env(vo), env(music * db(MUSIC_BUS_DB))
+        req = np.clip(ve * db(-VO_OVER_MUSIC_DB) / me, 0.02, 1.0)
+        req[ve < db(-50)] = 1.0
+        # attack 30 ms / release 180 ms on the required gain
+        out = np.empty_like(req)
+        st = 1.0
+        a_att, a_rel = np.exp(-1 / (0.03 * rate)), np.exp(-1 / (0.18 * rate))
+        for i, v in enumerate(req):
+            c = a_att if v < st else a_rel
+            st = c * st + (1 - c) * v
+            out[i] = st
+        dyn = np.interp(np.arange(n) / step, np.arange(nfr), out)
+        gain = np.minimum(gain, dyn)
+    music *= gain[:, None]
+    STEMS.update(vo=vo, music=music * db(MUSIC_BUS_DB), sfx=sfx * db(-3))
+    return vo + music * db(MUSIC_BUS_DB) + sfx * db(-3)
+
+
+STEMS = {}
+DUCK_DB = -16.0  # music under the voice
+MUSIC_BUS_DB = -7.0
+VO_OVER_MUSIC_DB = 13.0
 
 
 def smooth_gate(target, att, rel, rate=1000):
@@ -490,6 +542,18 @@ def main():
     run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", lst, "-c", "copy", concat])
 
     events, lines = build_captions(E, by_id, total, words)
+    if words:  # SRT of the full narration (for platform captions / accessibility)
+        def srt_t(t):
+            ms = int(round(t * 1000))
+            h, ms = divmod(ms, 3600000)
+            m, ms = divmod(ms, 60000)
+            s_, ms = divmod(ms, 1000)
+            return f"{h:02d}:{m:02d}:{s_:02d},{ms:03d}"
+        with open(os.path.splitext(out_path)[0] + ".srt", "w", encoding="utf-8") as f:
+            for k, ln in enumerate(lines, 1):
+                txt = ln["text"].replace("\\N", "\n")
+                nxt = lines[k]["start"] - 0.02 if k < len(lines) else total
+                f.write(f"{k}\n{srt_t(ln['start'])} --> {srt_t(min(ln['end'] + 0.3, nxt))}\n{txt}\n\n")
     ass = os.path.join(BUILD, "captions.ass")
     write_ass(E, segs, events, ass, draft=draft)
 
@@ -499,9 +563,23 @@ def main():
 
     spans = [(l['start'] - 0.05, l['end'] + 0.1) for l in lines]
     spans += [(at(by_id, sg, off), at(by_id, sg, off) + d) for sg, off, d in getattr(E, 'DUCK_EXTRA', [])]
-    mix = mix_audio(E, by_id, total, narration, spans)
+    mix = mix_audio(E, by_id, total, narration, spans, words)
     mix = mix[: int(round(total * SR))]
+    gain_pre = None
     mix, L, tp = master(mix)
+    if STEMS:  # loudness of each stem inside the final master (same gain the master applied)
+        meter = pyln.Meter(SR)
+        raw = sum(STEMS.values())[: len(mix)]
+        g = np.sqrt(np.mean(mix ** 2) / (np.mean(raw ** 2) + 1e-12))
+        for k, v in STEMS.items():
+            v = v[: len(mix)] * g
+            if np.max(np.abs(v)) > 1e-6:
+                print(f"  stem {k:5s}: {meter.integrated_loudness(v):6.1f} LUFS")
+        if np.max(np.abs(STEMS['vo'])) > 1e-6:
+            sf.write(os.path.join(BUILD, "stem_vo.wav"), (STEMS['vo'][: len(mix)] * g).astype(np.float32), SR, subtype="PCM_24")
+            sf.write(os.path.join(BUILD, "stem_bed.wav"), ((STEMS['music'] + STEMS['sfx'])[: len(mix)] * g).astype(np.float32), SR, subtype="PCM_24")
+            sf.write(os.path.join(BUILD, "stem_music.wav"), (STEMS['music'][: len(mix)] * g).astype(np.float32), SR, subtype="PCM_24")
+            sf.write(os.path.join(BUILD, "stem_sfx.wav"), (STEMS['sfx'][: len(mix)] * g).astype(np.float32), SR, subtype="PCM_24")
     wav = os.path.join(BUILD, "mix_master.wav")
     sf.write(wav, mix.astype(np.float32), SR, subtype="PCM_24")
     print(f"master: {L:.2f} LUFS, true peak {tp:.2f} dBTP (pre-encode)")
