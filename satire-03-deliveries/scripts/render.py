@@ -281,6 +281,9 @@ def render_endcard_v4(E, seg, out):
     d = os.path.join(ROOT, "assets", "endcard")
     C = E.ENDCARD_V4
     bg = np.asarray(Image.open(os.path.join(d, "v4_bg.png")).convert("RGB")).astype(np.float32)
+    if bg.shape[0] != E.H:  # other aspect ratios: take a band of the 9:16 background
+        y0 = int(C.get("bg_y0", (bg.shape[0] - E.H) // 2))
+        bg = np.ascontiguousarray(bg[y0:y0 + E.H, :E.W])
 
     def rgba(path, width=None):
         im = Image.open(path).convert("RGBA")
@@ -474,6 +477,8 @@ def build_captions(E, by_id, total, words_override=None):
             txt = " ".join(parts).replace(" \\N ", "\\N")
             if style in ("Big", "Punch") and step == 0:
                 txt = "{\\fscx76\\fscy76\\t(0,130,\\fscx100\\fscy100)}" + txt
+            if opt.get("top"):  # caption anchored to the top (MarginV = distance from the top)
+                txt = "{\\an8}" + txt
             events.append((s, e, style, txt, mv))
     return events, lines
 
