@@ -1,0 +1,19 @@
+{
+  "jingle_commercial": {
+    "bpm": 124,
+    "bar_sec": 1.935483870967742,
+    "bars": 16,
+    "length_sec": 30.967741935483872
+  },
+  "epic_adventure": {
+    "bpm": 96,
+    "bar_sec": 2.5,
+    "bars": 16,
+    "sections": {
+      "A_adventure": 0.0,
+      "B_build": 10.0,
+      "C_epic": 20.0,
+      "final_hit": 40.0
+    }
+  }
+}
