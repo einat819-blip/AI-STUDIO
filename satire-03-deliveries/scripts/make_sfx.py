@@ -269,6 +269,18 @@ def room_rural(dur=8.0):
     return reverb(out, wet=0.3, dur=1.5)
 
 
+# 19. Cardboard box dropped into a car boot
+def box_thud():
+    out = silence(0.8)
+    n = int(0.25 * SR)
+    thump = sine(np.geomspace(140, 55, n), n) * env_exp(n, 0.06, 0.001)
+    body = bp(rng.standard_normal(n), 180, 1400) * env_exp(n, 0.035, 0.0005) * 0.8
+    out = place(out, thump + body, 0.0, 1.0)
+    rat = bp(rng.standard_normal(int(0.3 * SR)), 900, 5000) * env_exp(int(0.3 * SR), 0.05, 0.002) * 0.25
+    out = place(out, pan(rat, 0.2), 0.03, 1.0)
+    return reverb(out, wet=0.12, dur=0.5)
+
+
 # 18. Huge hit (for the epic -> cut moment)
 def impact():
     n = int(1.8 * SR)
@@ -297,3 +309,4 @@ if __name__ == "__main__":
     save("room_office", room_office(), -30)
     save("room_rural", room_rural(), -28)
     save("impact", impact(), -1)
+    save("box_thud", box_thud(), -2)

@@ -264,6 +264,7 @@ def build_captions(E, by_id, total, words_override=None):
         cap_end = min(nxt - 0.04, ln["end"] + 0.55)
         cap_end = max(cap_end, ln["start"] + 0.7)
         style = "Big" if ln["opt"].get("big") else "Cap"
+        mv = ln["opt"].get("marginv", 0)
         toks = tokenize(ln["text"])
         onsets = [w[1] for w in ln["words"]]
         for step in range(len(onsets)):
@@ -286,7 +287,7 @@ def build_captions(E, by_id, total, words_override=None):
             # a short pop on the first word of a punch line
             if style == "Big" and step == 0:
                 txt = "{\\fscx70\\fscy70\\t(0,120,\\fscx100\\fscy100)}" + txt
-            events.append((s, e, style, txt))
+            events.append((s, e, style, txt, mv))
     return events, lines
 
 
@@ -311,8 +312,8 @@ Style: Draft,Heebo Bold,28,&H00FFFFFF,&H00FFFFFF,&H7A000000,&H7A000000,0,0,0,0,1
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     rows = []
-    for s, e, style, txt in events:
-        rows.append(f"Dialogue: 1,{ass_time(s)},{ass_time(e)},{style},,0,0,0,,{txt}")
+    for s, e, style, txt, mv in events:
+        rows.append(f"Dialogue: 1,{ass_time(s)},{ass_time(e)},{style},,0,0,{mv},,{txt}")
     for sg in segs:
         if sg["kind"] == "slate":
             s, e = sg["start"], sg["start"] + sg["dur"]
@@ -506,7 +507,11 @@ def main():
     print(f"master: {L:.2f} LUFS, true peak {tp:.2f} dBTP (pre-encode)")
 
     fonts = os.path.join(ROOT, "assets", "fonts")
-    fc = (f"[0:v][1:v]overlay=x={E.LOGO['x'] - pad}:y={E.LOGO['y'] - pad}:enable='lt(t,{t_end:.3f})'[v1];"
+    logo_on = f"lt(t,{t_end:.3f})"
+    for sg in segs:  # segments where the logo would cover text printed in the picture
+        if sg.get("hide_logo"):
+            logo_on += f"*not(between(t,{sg['start']:.3f},{sg['start'] + sg['dur'] - 0.001:.3f}))"
+    fc = (f"[0:v][1:v]overlay=x={E.LOGO['x'] - pad}:y={E.LOGO['y'] - pad}:enable='{logo_on}'[v1];"
           f"[v1]ass={ass}:fontsdir={fonts}[v]")
     run(["ffmpeg", "-v", "error", "-y", "-i", concat, "-i", logo_png, "-i", wav, "-filter_complex", fc,
          "-map", "[v]", "-map", "2:a", "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-profile:v", "high",
