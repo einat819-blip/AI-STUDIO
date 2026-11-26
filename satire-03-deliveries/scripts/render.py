@@ -95,6 +95,11 @@ def render_clip(E, seg, out):
     seg["scale"] = round(s0, 3)
 
 
+def INTERMEDIATE_Q(E):
+    """Quality of the per-segment intermediates: lossless when the edit asks for it."""
+    return ["-qp", "0"] if getattr(E, "LOSSLESS_INTERMEDIATES", False) else ["-crf", "8"]
+
+
 def _ease(p, kind):
     p = float(np.clip(p, 0, 1))
     if kind == "out":          # fast start, soft landing (crash zoom)
@@ -152,7 +157,7 @@ def render_clip_py(E, seg, out):
                             "-frames:v", str(n), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
     enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
                             "-s", f"{E.W}x{E.H}", "-r", str(E.FPS), "-i", "-", "-vf", "format=yuv420p",
-                            "-c:v", "libx264", "-preset", "fast", "-crf", "8", out], stdin=subprocess.PIPE)
+                            "-c:v", "libx264", "-preset", "fast", *INTERMEDIATE_Q(E), out], stdin=subprocess.PIPE)
     patch = seg.get("patch")
     last = None
     smax = 0
@@ -286,7 +291,7 @@ def render_endcard_v4(E, seg, out):
 
     brush, brush_a = rgba(os.path.join(d, "v4_brush.png"), C["brush_width"])
     logo, logo_a = rgba(os.path.join(ROOT, "source", "images", "ainati_logo_original.webp"), C["logo_width"])
-    tag, tag_a = rgba(os.path.join(d, "v4_tagline.png"))
+    tag, tag_a = rgba(os.path.join(d, C.get("tagline_file", "v4_tagline.png")))
     # soft gold glow behind the logo
     glow = np.zeros((E.H, E.W), np.float32)
     lx, ly = (E.W - logo.shape[1]) // 2, C["logo_y"] - logo.shape[0] // 2
@@ -313,7 +318,7 @@ def render_endcard_v4(E, seg, out):
 
     enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
                             "-s", f"{E.W}x{E.H}", "-r", str(E.FPS), "-i", "-", "-vf", "format=yuv420p",
-                            "-c:v", "libx264", "-preset", "fast", "-crf", "8", out], stdin=subprocess.PIPE)
+                            "-c:v", "libx264", "-preset", "fast", *INTERMEDIATE_Q(E), out], stdin=subprocess.PIPE)
     split, xf = C["card1_dur"], C["crossfade"]
     bx = (E.W - brush.shape[1]) // 2
     by = C["brush_y"] - brush.shape[0] // 2
@@ -836,7 +841,7 @@ def main():
     fc = (f"[0:v][1:v]overlay=x={E.LOGO['x'] - pad}:y={E.LOGO['y'] - pad}:enable='{logo_on}'[v1];"
           f"[v1]ass={ass}:fontsdir={fonts}[v]")
     run(["ffmpeg", "-v", "error", "-y", "-i", concat, "-i", logo_png, "-i", wav, "-filter_complex", fc,
-         "-map", "[v]", "-map", "2:a", "-c:v", "libx264", "-preset", "slow", "-crf", str(getattr(E, "FINAL_CRF", 17)), "-profile:v", "high",
+         "-map", "[v]", "-map", "2:a", "-c:v", "libx264", "-preset", getattr(E, "FINAL_PRESET", "slow"), "-crf", str(getattr(E, "FINAL_CRF", 17)), "-profile:v", "high",
          "-pix_fmt", "yuv420p", "-r", str(E.FPS), "-g", str(E.FPS * 2),
          "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
          "-c:a", "aac", "-b:a", "320k", "-ar", str(SR), "-movflags", "+faststart", "-shortest", out_path])

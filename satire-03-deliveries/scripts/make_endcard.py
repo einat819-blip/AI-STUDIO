@@ -164,5 +164,22 @@ def build_v4():
     print("v4 end card assets written")
 
 
+def build_tagline(size, spacing, name):
+    """Studio tagline set in Heebo Bold (white), two centred RTL lines."""
+    from PIL import ImageDraw, ImageFont
+    font = ImageFont.truetype(os.path.join(ROOT, "assets", "fonts", "Heebo-Bold.ttf"), size)
+    lines = ["המציאות כותבת את התסריט.", "אני רק מנפישה אותה."]
+    hgt = spacing + 2 * size
+    img = Image.new("RGBA", (W, hgt), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for k, ln in enumerate(lines):
+        d.text((W // 2, hgt // 2 + (k - 0.5) * spacing), ln, font=font, fill=(245, 245, 245, 255), anchor="mm",
+               direction="rtl", language="he")
+    img.save(os.path.join(OUT, name))
+    print("tagline", size, "px ->", name, img.size)
+
+
 if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == "v4":
     build_v4()
+if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == "v5":
+    build_tagline(68, 100, "v5_tagline.png")   # +25% (54 -> 68 px), spacing scaled with it

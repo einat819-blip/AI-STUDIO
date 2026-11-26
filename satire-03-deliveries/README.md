@@ -1,7 +1,20 @@
 # משלוחים לכל חלקי הארץ*
 סרטון 3 בסדרת הסאטירה של AINATI STUDIOS · 1080×1920 · 30fps · H.264 + AAC
 
-## מצב: גרסה 4 סופית
+## מצב: V5_APPROVED (מאושר)
+
+`renders/V5_APPROVED.mp4` היא הגרסה המאושרת, ו `renders/V5_APPROVED.srt` הוא קובץ הכתוביות שלה. רשימת העריכה: `edit/edit_v5.py`. הגרסה זהה ל v4 חוץ משלושה תיקונים:
+
+1. **הוסר הכיתוב ״הזמנת משלוח? מזל טוב, התקבלת לעבודה כשליחה!״.** הוא מודפס על פס נייר בתחתית קליפ המקור של שוט 13, ולא על שקופית הסיום. שני הקטעים של שוט 13 מוסגרו מחדש, כך שהפריים נגמר מעל הפס. הפנים שלה, החבילה והשלט עם הפאנץ' נשארו בתמונה. הסריקה של 84 הפריימים לא מצאה שארית מהפס.
+2. **משפט המיתוג גדל ב 25%** (מ 54 ל 68 פיקסלים), באותו פונט, צבע ותזמון.
+3. **ייצוא באיכות מקסימלית:** קטעי ביניים ללא אובדן, H.264 High ב CRF 12 עם preset veryslow, 1080×1920, 30fps, AAC 320k ב 48kHz.
+
+הקריינות, המוזיקה והאפקטים זהים ביט לביט ל v4. עד 44.3 שניות התמונה זהה ל v4: PSNR של 46 dB, וההבדל הוא רק בקידוד.
+
+* הקובץ שוקל 140 MB, מעל המגבלה של GitHub (100 MB לקובץ). לכן הוא נשמר בענף דרך Git LFS.
+* חומרי המקור הטובים ביותר שיש: קליפי הווידאו המקוריים ברזולוציה 704×1248. ההגדלה ל 1080×1920 נעשית פעם אחת, ישר מהמקור. בשוט 13 ההגדלה היא פי 2.1, ולכן הוא מעט רך יותר משאר השוטים.
+
+## גרסה 4
 
 `renders/v4_final.mp4` (51.7 שניות) היא הגרסה הסופית, ערוכה לפי הנחיות העריכה הסופיות, ו `renders/v4_final.srt` הוא קובץ הכתוביות שלה. גרסה 3 והטיוטות הקודמות נשמרו כמו שהן. רשימת העריכה: `edit/edit_v4.py`.
 
@@ -68,8 +81,9 @@ python3 scripts/transcribe.py <model_dir> source/audio/narration.wav edit/narrat
 python3 scripts/align_words.py edit/edit_v3.py
 python3 scripts/make_endcard.py v4
 python3 scripts/align_words.py edit/edit_v4.py
-python3 scripts/render.py edit/edit_v4.py renders/v4_final.mp4
-python3 scripts/qc_vo.py edit/edit_v4.py
+python3 scripts/make_endcard.py v5
+python3 scripts/render.py edit/edit_v5.py renders/V5_APPROVED.mp4
+python3 scripts/qc_vo.py edit/edit_v5.py
 ```
 
 ## זכויות
