@@ -75,57 +75,36 @@ YEHUDA_PUSH = (YEHUDA_T, YEHUDA_T + 0.12, 1.20, 1.26)
 ZOOM_OUT = (ERASE_T - 0.42, ERASE_T - 0.05, 1.26, 1.00)
 P3_SHOW = LOOK_T + 0.13
 BKSP = backspace_times(len(T3), YEHUDA_T + 0.05, ERASE_T - 0.12)
-V3_OUT = 7.72
-PIX_OUT = 0.13               # clip 3 breaks into blocks ...
-PIX_SWAP = 0.17              # ... blocks of the new reality switch in, laptop first ...
-PIX_IN = 0.17                # ... and clip 4 sharpens just before the snap
-CUT_D = f30(S3E_T + (V3_OUT - V3_AFTER))
+CUT_D = None                 # the laptop / fantasy section is gone in this version
+PIX_OUT = PIX_SWAP = PIX_IN = 0.0
 
-# ------------------------------------------------------------------ S4 snap and reveal (visuals unchanged)
-V4_REVEAL = 3.40             # the castle world opens up
-SNAP_T = CUT_D + 0.35
-IMPACT_T = CUT_D + V4_REVEAL
+# ------------------------------------------------------------------ new ending: the AI resigns
+V3_TAIL = 0.20               # her open palm right after the erase: the cut on action into clip 6
+VS6 = f30(S3E_T + V3_TAIL)   # clip 6: both palms up
+NOTIF_T = VS6 + 2.35         # alert sound and the resignation notice
+MUSIC_STOP = VS6 + 5.20      # the music drops out before the punch
+PUSH = (f30(VS6 + 6.45), f30(VS6 + 6.85))   # push in on her eyes, into the close-up
+VS7 = PUSH[1]                # clip 7: the personal close-up
+EYES_V6 = (328, 596)         # eye midpoint, clip 6 at 6.5 s (source px)
+EYES_V7 = (382, 498)         # eye midpoint, clip 7 at 0.0 s
+PUSH_ZOOM = 1.74             # interocular distance ratio clip 7 / clip 6
 
-# ------------------------------------------------------------------ ending (v4)
-# Her line lands as a reaction to the new world, the tagline voice-over bridges into the
-# golden-light transition, and "אתם כן" falls on her pointing at the lens, which sets off
-# the reveal of the studio details.
-D5_T = IMPACT_T + 0.30
-VO1 = (IMPACT_T + 1.80, IMPACT_T + 3.70)        # "אצלנו המציאות לא קובעת את התסריט."
-CUT_E = f30(IMPACT_T + 3.90)                      # transformation -> branded scene (matched face)
-V4_OUT = CUT_E - CUT_D
-SWIRL = (CUT_E - 0.42, CUT_E + 0.48)              # the animation's own golden swirl carries the cut
-VO2 = (CUT_E + 0.05, CUT_E + 0.55)                # "אתם כן." on her pointing
-VO_SLOT = ("vo", VO1[0], VO2[1])
-PULSE0, PULSE1 = VO2
-PULLBACK = (CUT_E + 0.05, CUT_E + 0.85)           # out of the matched close-up to the full stage
-FINGER_T = CUT_E + 0.30                           # golden light leaves her fingertip
-CTA1_T = CUT_E + 0.45
-CTA2_T = CUT_E + 0.95                             # her wink
-
-# music: finale cue with one 4-bar loop inserted so it keeps building to the last frame
-MUSIC_FINALE_START = IMPACT_T - 3.93              # cue impact at 3.93 s
-LOOP_S, LOOP_E = 5.03, 9.03                       # cue time: play to LOOP_E, jump back to LOOP_S
-LOOP_LEN = LOOP_E - LOOP_S
-FINAL_HIT = MUSIC_FINALE_START + 11.96 + LOOP_LEN
-
-
-def music_beat(k):
-    """Edit time of the k-th downbeat after the loop jump (k=0 is the jump itself)."""
-    return MUSIC_FINALE_START + LOOP_E + k
-
-
-COMPACT_T = music_beat(1)                         # CTA tucks up, the studio name arrives
-NAME_T = music_beat(1)
-SERV_T = music_beat(1) + 0.50
-SOC_TIMES = [music_beat(2), music_beat(2) + 0.50, music_beat(3)]
+# ------------------------------------------------------------------ music for the close-up and the end slide
+M6_IN, M6_PEAK, M6_LOOP_S, M6_LOOP_E, M6_HIT = 2.54, 7.37, 8.38, 10.42, 11.68
+T_SHAPES = f30(VS7 + 4.43)                   # colour shapes sweep in exactly on the peak
+M6_START = T_SHAPES - (M6_PEAK - M6_IN)      # starts softly right after the punch
+FINAL_HIT = T_SHAPES + (M6_HIT - M6_PEAK) + (M6_LOOP_E - M6_LOOP_S)
 END_T = f30(FINAL_HIT + 0.45)
 TOTAL_FRAMES = int(round(END_T * FPS))
+EIGHTH = 0.254
+SLIDE = dict(logo=T_SHAPES + 1 * EIGHTH, tag1=T_SHAPES + 3 * EIGHTH, tag2=T_SHAPES + 4 * EIGHTH,
+             serv=T_SHAPES + 5 * EIGHTH, cta=T_SHAPES + 6 * EIGHTH)
+SOC_TIMES = [T_SHAPES + 7 * EIGHTH, T_SHAPES + 8 * EIGHTH, T_SHAPES + 9 * EIGHTH]
 
-CTA_LINE1 = "יש לכם רעיון לסרט?"
-CTA_LINE2 = [("בואו", None), ("נהפוך", None), ("אותו", None), ("למציאות.", "gold")]
-STUDIO = "AI NATI STUDIOS"
+NOTICE = "הבינה המלאכותית מבקשת להתפטר."
+TAG1, TAG2 = "אתם מדמיינים.", "אני מביימת."
 SERVICES = ["סרטים אישיים", "פרסומות", "הזמנות לאירועים"]
+CTA_PILL = "יש לכם רעיון? בואו נדבר."
 SOCIALS = [("instagram", "@ainati_studios"), ("facebook", "AI NATI STUDIOS"), ("tiktok", "@einat.cohen.elyas")]
 
 # ------------------------------------------------------------------ dialogue (placeholders until the voice)
@@ -135,11 +114,17 @@ DIALOGUE = [
     ("d2", [[("אריה?", None, CUT_B + 0.30), ("איזה", None, CUT_B + 0.74), ("מקורי…", "teal", CUT_B + 0.93)]], CUT_B + 1.60, None),
     ("d3a", [[("תמחק,", "coral", LOOK_T + 0.08), ("תמחק!", "coral", LOOK_T + 0.38)]], YEHUDA_T - 0.10, "shake"),
     ("d3b", [[("יהודה", "gold", YEHUDA_T), ("רואה", None, YEHUDA_T + 0.27),
-              ("את", None, YEHUDA_T + 0.43), ("זה!", None, YEHUDA_T + 0.55)]], S3E_T + 0.12, None),
-    ("d4", [[("טוב,", None, S3E_T + 0.10), ("מספיק!", None, S3E_T + 0.33)],
-            [("תן", None, S3E_T + 0.80), ("לי", None, S3E_T + 0.93), ("לכתוב", None, S3E_T + 1.08),
-             ("את", None, S3E_T + 1.35), ("התסריט.", "gold", S3E_T + 1.50)]], CUT_D - 0.22, None),
-    ("d5", [[("עכשיו", None, D5_T), ("אנחנו", None, D5_T + 0.27), ("מדברים!", "gold", D5_T + 0.55)]], D5_T + 1.30, None),
+              ("את", None, YEHUDA_T + 0.43), ("זה!", None, YEHUDA_T + 0.55)]], S3E_T + 0.02, None),
+    ("d4", [[("טוב,", None, VS6 + 0.15), ("מספיק!", None, VS6 + 0.38)],
+            [("תן", None, VS6 + 0.85), ("לי", None, VS6 + 0.98), ("לכתוב", None, VS6 + 1.13),
+             ("את", None, VS6 + 1.40), ("התסריט.", "gold", VS6 + 1.55)]], VS6 + 2.15, None),
+    ("d6", [[("מה", None, VS6 + 4.45), ("לעשות?", None, VS6 + 4.65)],
+            [("אני", None, VS6 + 5.35), ("קשה", None, VS6 + 5.52), ("עם", None, VS6 + 5.72), ("ספקים.", "gold", VS6 + 5.85)]],
+     VS6 + 6.42, None),
+    ("d7a", [[("יש", None, VS7 + 0.40), ("לכם", None, VS7 + 0.55), ("רעיון", "teal", VS7 + 0.72), ("לסרט?", "teal", VS7 + 0.97)]],
+     VS7 + 1.72, None),
+    ("d7b", [[("תשאירו", "teal", VS7 + 1.90), ("את", None, VS7 + 2.25), ("העבודה", None, VS7 + 2.40)],
+             [("הקשה", None, VS7 + 2.75), ("לי.", "teal", VS7 + 3.05)]], VS7 + 3.80, None),
 ]
 
 # ------------------------------------------------------------------ edit list
@@ -153,7 +138,7 @@ SEGMENTS = [
     ("v3", S3B_T, S3C_T, ("rev", HOLD_B), "s3"),
     ("v3", S3C_T, ERASE_T, ("lin", HOLD_A), "s3"),
     ("v3", ERASE_T, S3E_T, ("hold", V3_ERASE), "s3"),
-    ("v3", S3E_T, CUT_D, ("lin", V3_AFTER), "s3"),
-    ("v4", CUT_D, CUT_E, ("lin", 0.0), "static"),
-    ("v5", CUT_E, END_T, ("clamp", 0.0, 8.0), "s5"),
+    ("v3", S3E_T, VS6, ("lin", V3_AFTER), "s3"),
+    ("v6", VS6, VS7, ("lin", 0.0), "s6"),
+    ("v7", VS7, END_T, ("clamp", 0.0, 8.0), "s7"),
 ]

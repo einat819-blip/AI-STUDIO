@@ -1,4 +1,4 @@
-"""Compositor for the AI NATI STUDIOS "reality script" ad, version 4 (1080x1920, 30 fps).
+"""Compositor for the AI NATI STUDIOS "reality script" ad, version 5: the AI resigns (1080x1920, 30 fps).
 
 Every output frame maps to a source frame through the edit list in timeline.py
 (forward, reverse, hold), gets a camera crop in source pixels (no interpolation of
@@ -95,7 +95,7 @@ def tlen(text, font, direction='rtl'):
 
 # ============================================================ sources
 SRC_SIZE = {}
-for c in ('v1', 'v2', 'v3', 'v4', 'v5'):
+for c in ('v1', 'v2', 'v3', 'v6', 'v7'):
     w, h = subprocess.check_output(
         ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries',
          'stream=width,height', '-of', 'csv=p=0', f'{SP}/src/{c}.mp4']).decode().strip().split(',')
@@ -225,14 +225,20 @@ def camera_rect(kind, clip, t):
         p0 = out_pos('v3', a_src)
         a_out = (lerp(p0[0], 300, k), lerp(p0[1], 600, k))
         return rect_from_anchor('v3', z, a_src, a_out), (0, 0)
-    if kind == 's5':
-        matched = rect_from_anchor('v5', 1.13, (327, 522), (545, 706))
-        if t < PULLBACK[0]:
-            return matched, (0, 0)
-        if t < PULLBACK[1]:
-            return lerp_rect(matched, rect_centered('v5', 1.0), ease_in_out((t - PULLBACK[0]) / (PULLBACK[1] - PULLBACK[0]))), (0, 0)
-        u = clamp((t - PULLBACK[1]) / (END_T - PULLBACK[1]))
-        return rect_centered('v5', 1.0 + 0.035 * ease_in_out(u)), (0, 0)
+    if kind == 's6':
+        if t < PUSH[0]:
+            return rect_centered('v6', 1.0), (0, 0)
+        matched = rect_from_anchor('v6', PUSH_ZOOM, EYES_V6, ((EYES_V7[0] - 1) * W / 702, EYES_V7[1] * H / 1248))
+        u = ease_in_cubic((t - PUSH[0]) / (PUSH[1] - PUSH[0]))
+        z = 1.0 + (PUSH_ZOOM - 1.0) * u
+        # interpolate in zoom space so the push accelerates smoothly into the matched framing
+        r0 = rect_centered('v6', 1.0)
+        k = (1 / 1.0 - 1 / z) / (1 / 1.0 - 1 / PUSH_ZOOM)
+        return lerp_rect(r0, matched, k), (0, 0)
+    if kind == 's7':
+        u = clamp((t - VS7) / max(0.01, T_SHAPES - VS7))
+        z = 1.0 + 0.07 * ease_out_cubic(u)
+        return rect_from_anchor('v7', z, EYES_V7, ((EYES_V7[0] - 1) * W / 702, EYES_V7[1] * H / 1248)), (0, 0)
     return rect_centered(clip, 1.0), (0, 0)
 
 
@@ -497,6 +503,7 @@ def animate_word(frame, spr, cx, cy, t, tw, out_a, key=False, shake=False):
 
 
 CAP_CY = 1150
+CAP_CY_FOR = {'d4': 1275, 'd6': 1275}   # clip 6 is a wider shot: keep the lines clear of her chin
 CAP_LINE_H = 112
 CAP_GAP = 22
 CAP_MAXW = 860
@@ -523,7 +530,7 @@ def draw_dialogue(frame, t):
             continue
         out_u = clamp((t - t_end) / 0.14)
         out_a = 1 - out_u
-        top = CAP_CY - CAP_LINE_H * len(lines) / 2
+        top = CAP_CY_FOR.get(name, CAP_CY) - CAP_LINE_H * len(lines) / 2
         if MARKERS:
             marker(frame, name, W / 2, top - 30, out_a)
         for li, line in enumerate(lines):
@@ -670,193 +677,38 @@ def pixel_transition(frame, t):
 
 _cache = {}
 
+# ============================================================ shared text and badge helpers
+F_NOTICE = FONT('heebo-600', 56)
+F_NLABEL = FONT('heebo-600', 28)
+F_TAG = FONT('rubik-800', 104)
+F_SERV3 = FONT('heebo-700', 42)
+F_PILL = FONT('rubik-800', 60)
+F_HANDLE = FONT('heebo-700', 58)
 
-# ============================================================ v5 source-space effects (follow the camera)
-BANNER_SRC = (214, 284, 498, 356)     # "אתם כן." gold stroke, clip 5 source px
-LOGO_SRC = (100, 8, 612, 238)         # AI NATI STUDIOS logo, clip 5 source px
-
-
-def gold_glint(region, u, strength=120, width=40):
-    arr = np.array(region).astype(np.float32)
-    gold = ((arr[:, :, 0] > 165) & (arr[:, :, 1] > 110) & (arr[:, :, 2] < 140)).astype(np.float32)
-    xx = np.arange(arr.shape[1])[None, :] + 0.45 * np.arange(arr.shape[0])[:, None]
-    gx = arr.shape[1] * (1.3 - 1.7 * u)
-    band = np.clip(1 - np.abs(xx - gx) / width, 0, 1) ** 1.5
-    arr += (gold * band * strength)[:, :, None]
-    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
-
-
-def v5_source_fx(img, t):
-    if PULSE0 <= t < PULSE1:
-        u = (t - PULSE0) / (PULSE1 - PULSE0)
-        s = 1 + 0.12 * math.sin(math.pi * u) ** 1.5
-        x0, y0, x1, y1 = BANNER_SRC
-        reg = gold_glint(img.crop(BANNER_SRC), u)
-        w, h = reg.size
-        big = reg.resize((int(w * s), int(h * s)), Image.LANCZOS)
-        m = rrect_mask(big.width, big.height, 18).filter(ImageFilter.GaussianBlur(6))
-        img = img.copy()
-        img.paste(big, (int((x0 + x1) / 2 - big.width / 2), int((y0 + y1) / 2 - big.height / 2)), m)
-    if NAME_T <= t < NAME_T + 0.7:
-        u = (t - NAME_T) / 0.7
-        img = img.copy()
-        img.paste(gold_glint(img.crop(LOGO_SRC), u, 130, 55), LOGO_SRC[:2])
-    return img
-
-
-# ============================================================ golden swirl transition (in the language of clip 4's magic)
-SWIRL_C = (545, 905)                  # crossing point: her chest, under the matched face
-SWIRL_A = 560                         # lobe reach left and right of her
-
-
-def lemniscate(u, phase):
-    th = u * 2 * math.pi + phase
-    d = 1 + math.sin(th) ** 2
-    x = SWIRL_A * math.cos(th) / d
-    y = SWIRL_A * 0.62 * math.sin(th) * math.cos(th) / d
-    # slight tilt and perspective so it reads as wrapping around her
-    return SWIRL_C[0] + x, SWIRL_C[1] + y - 0.10 * x
-
-
-def swirl_overlay(frame, t):
-    if not (SWIRL[0] <= t < SWIRL[1]):
-        return frame
-    if t < CUT_E - 0.05:
-        e = smooth((t - SWIRL[0]) / (CUT_E - 0.05 - SWIRL[0]))
-    elif t < CUT_E + 0.08:
-        e = 1.0
-    else:
-        e = 1 - smooth((t - CUT_E - 0.08) / (SWIRL[1] - CUT_E - 0.08))
-    u_t = (t - SWIRL[0]) / (SWIRL[1] - SWIRL[0])
-    core = Image.new('L', (W, H), 0)
-    cd = ImageDraw.Draw(core)
-    head = 0.25 + 1.35 * u_t                       # the ribbons keep travelling round the loop
-    length = 0.80 * e + 0.08
-    for strand, (ph, width, off) in enumerate(((0.0, 12, 0), (0.22, 8, 16), (0.45, 6, -14), (0.68, 5, 26), (0.9, 4, -24))):
-        pts = []
-        for k in range(90):
-            uu = head - length * (k / 89)
-            x, y = lemniscate(uu, ph)
-            pts.append((x, y + off))
-        for k in range(len(pts) - 1):
-            taper = 1 - k / (len(pts) - 1)
-            wdt = max(1, int(width * (0.35 + 0.65 * taper)))
-            cd.line((pts[k], pts[k + 1]), fill=int(255 * taper), width=wdt)
-    # sparkles shed along the ribbon
-    rng = np.random.default_rng(int(t * 1000))
-    for _ in range(int(230 * e)):
-        uu = head - length * rng.uniform(0, 1)
-        x, y = lemniscate(uu, rng.uniform(0, 0.7))
-        x += rng.normal(0, 18); y += rng.normal(0, 18)
-        r = rng.uniform(1, 3.2)
-        cd.ellipse((x - r, y - r, x + r, y + r), fill=int(rng.uniform(120, 255)))
-    c = np.array(core).astype(np.float32) / 255
-    g1 = np.array(core.filter(ImageFilter.GaussianBlur(6))).astype(np.float32) / 255
-    g2 = np.array(core.filter(ImageFilter.GaussianBlur(22))).astype(np.float32) / 255
-    light = (c[:, :, None] * np.array([255, 246, 214]) + g1[:, :, None] * np.array([255, 205, 95]) * 1.7
-             + g2[:, :, None] * np.array([255, 150, 40]) * 2.4) * e
-    a = np.array(frame).astype(np.float32)
-    res = 255 - (255 - a) * (255 - np.clip(light, 0, 255)) / 255       # screen: light only adds, no white-out
-    return Image.fromarray(np.clip(res, 0, 255).astype(np.uint8))
-
-
-# ============================================================ end card in the cinematic world
-F_CTA1 = FONT('rubik-800', 84)
-F_CTA2 = FONT('rubik-800', 72)
-F_STUDIO = FONT('heebo-700', 60)
-F_SERV2 = FONT('heebo-700', 42)
-F_HANDLE = FONT('heebo-700', 64)
-
-CTA1_Y, CTA2_Y = 1076, 1180
-COMPACT_Y = 978
-STUDIO_Y = 1052
-SERV2_Y = 1120
-SOC_Y = [1212, 1334, 1456]
-BADGE = 114
-
+PURPLE = (40, 10, 74)
+PURPLE_D = (20, 4, 40)
+TURQ = (34, 226, 210)
+PINK = (255, 46, 147)
+ALERT = (255, 66, 84)
+BADGE = 100
 GLYPHS = {n: Image.open(f'{SP}/icons/{n}.png').convert('RGBA') for n in ('instagram', 'facebook', 'tiktok')}
+LOGO = Image.open(f'{SP}/icons/logo.png').convert('RGBA')
 
 
-def text_layer(text, font, fill=(255, 255, 255), contour=6, direction='rtl'):
-    key = ('tl', text, font.path, font.size, fill, contour, direction)
+def text_layer(text, font, fill=(255, 255, 255), contour=6, direction='rtl', shadow=0.55):
+    key = ('tl', text, font.path, font.size, fill, contour, direction, shadow)
     if key in _cache:
         return _cache[key]
     tw = int(tlen(text, font, direction)); asc, desc = font.getmetrics()
     M = 34
     im = Image.new('RGBA', (tw + 2 * M, asc + desc + 2 * M), (0, 0, 0, 0))
     c = (M + tw // 2, M + (asc + desc) // 2)
-    sh = Image.new('L', im.size, 0)
-    ImageDraw.Draw(sh).text(c, text, font=font, fill=255, anchor='mm', direction=direction, stroke_width=contour + 3, stroke_fill=255)
-    im.paste(Image.new('RGBA', im.size, (0, 0, 0, 255)), (0, 6), sh.filter(ImageFilter.GaussianBlur(10)).point(lambda v: int(v * 0.55)))
+    if shadow > 0:
+        sh = Image.new('L', im.size, 0)
+        ImageDraw.Draw(sh).text(c, text, font=font, fill=255, anchor='mm', direction=direction, stroke_width=contour + 3, stroke_fill=255)
+        im.paste(Image.new('RGBA', im.size, (0, 0, 0, 255)), (0, 6), sh.filter(ImageFilter.GaussianBlur(10)).point(lambda v: int(v * shadow)))
     ImageDraw.Draw(im).text(c, text, font=font, fill=fill + (255,), anchor='mm', direction=direction,
-                            stroke_width=contour, stroke_fill=CONTOUR + (255,))
-    _cache[key] = (im, tw)
-    return _cache[key]
-
-
-def line2_layer():
-    if 'l2' in _cache:
-        return _cache['l2']
-    parts = [text_layer(w, F_CTA2, GOLD if c else (255, 255, 255)) for w, c in CTA_LINE2]
-    gap = 22
-    tw = sum(v for _, v in parts) + gap * (len(parts) - 1)
-    M = 34
-    H2 = max(p.height for p, _ in parts)
-    im = Image.new('RGBA', (tw + 2 * M, H2), (0, 0, 0, 0))
-    x = M + tw
-    for p, v in parts:
-        im.alpha_composite(p, (int(x - v - M), (H2 - p.height) // 2))
-        x -= v + gap
-    _cache['l2'] = (im, tw)
-    return _cache['l2']
-
-
-def wipe_reveal(spr, u, band=True):
-    """Light writes the line from right to left (Hebrew reading direction)."""
-    if u >= 1:
-        return spr
-    w, h = spr.size
-    edge = w * (1 - u)
-    xs = np.arange(w, dtype=np.float32)
-    ramp = np.clip((xs - edge) / 36 + 0.5, 0, 1)
-    a = np.array(spr.getchannel('A')).astype(np.float32) * ramp[None, :]
-    out = spr.copy()
-    out.putalpha(Image.fromarray(a.astype(np.uint8)))
-    if band and u > 0:
-        glow = np.clip(1 - np.abs(xs - edge) / 26, 0, 1)[None, :] * (np.array(spr.getchannel('A')).astype(np.float32) / 255)
-        g = Image.new('RGBA', (w, h), GOLD + (0,))
-        g.putalpha(Image.fromarray((glow * 230).astype(np.uint8)))
-        out.alpha_composite(g)
-    return out
-
-
-def studio_layer(spacing):
-    key = ('studio', round(spacing, 1))
-    if key in _cache:
-        return _cache[key]
-    widths = [ImageDraw.Draw(Image.new('L', (1, 1))).textlength(ch, font=F_STUDIO) for ch in STUDIO]
-    tw = int(sum(widths) + spacing * (len(STUDIO) - 1))
-    asc, desc = F_STUDIO.getmetrics()
-    M = 30
-    size = (tw + 2 * M, asc + desc + 2 * M)
-    mask = Image.new('L', size, 0)
-    md = ImageDraw.Draw(mask)
-    stroke = Image.new('L', size, 0)
-    sd = ImageDraw.Draw(stroke)
-    x = M
-    for ch, wch in zip(STUDIO, widths):
-        md.text((x, M), ch, font=F_STUDIO, fill=255)
-        sd.text((x, M), ch, font=F_STUDIO, fill=255, stroke_width=5, stroke_fill=255)
-        x += wch + spacing
-    grad = np.zeros((size[1], size[0], 3), np.float32)
-    ys = np.linspace(0, 1, size[1])[:, None]
-    top, bot = np.array([255, 238, 168], np.float32), np.array([222, 148, 38], np.float32)
-    grad = (top[None, None, :] * (1 - ys[:, :, None]) + bot[None, None, :] * ys[:, :, None]).repeat(size[0], 1)
-    im = Image.new('RGBA', size, (0, 0, 0, 0))
-    im.paste(Image.new('RGBA', size, (0, 0, 0, 255)), (0, 5), stroke.filter(ImageFilter.GaussianBlur(9)).point(lambda v: int(v * 0.5)))
-    im.paste(Image.new('RGBA', size, CONTOUR + (255,)), (0, 0), stroke)
-    gold = Image.fromarray(grad.astype(np.uint8)).convert('RGBA')
-    im.paste(gold, (0, 0), mask)
+                            stroke_width=contour, stroke_fill=CONTOUR + (255,) if contour else None)
     _cache[key] = (im, tw)
     return _cache[key]
 
@@ -864,7 +716,7 @@ def studio_layer(spacing):
 def badge(icon):
     if ('badge', icon) in _cache:
         return _cache[('badge', icon)]
-    S = BADGE * 2                     # draw at 2x, downsample for clean edges
+    S = BADGE * 2
     im = Image.new('RGBA', (S, S), (0, 0, 0, 0))
     circle = Image.new('L', (S, S), 0)
     ImageDraw.Draw(circle).ellipse((2, 2, S - 3, S - 3), fill=255)
@@ -885,8 +737,7 @@ def badge(icon):
         ImageDraw.Draw(disc).ellipse((10, 10, S - 11, S - 11), fill=255)
         im.paste(Image.new('RGBA', (S, S), (255, 255, 255, 255)), (0, 0), disc)
         g = GLYPHS['facebook'].resize((S, S), Image.LANCZOS)
-        blue = Image.new('RGBA', (S, S), (24, 119, 242, 255))
-        im.paste(blue, (0, 0), g.getchannel('A'))
+        im.paste(Image.new('RGBA', (S, S), (24, 119, 242, 255)), (0, 0), g.getchannel('A'))
     else:
         im.paste(Image.new('RGBA', (S, S), (18, 16, 22, 255)), (0, 0), circle)
         g = GLYPHS['tiktok'].resize((int(S * 0.54), int(S * 0.54)), Image.LANCZOS)
@@ -895,12 +746,9 @@ def badge(icon):
             layer = Image.new('RGBA', g.size, col + (255,))
             layer.putalpha(g.getchannel('A'))
             im.alpha_composite(layer, (ox + dx, oy + dy))
-    ring = Image.new('L', (S, S), 0)
-    ImageDraw.Draw(ring).ellipse((2, 2, S - 3, S - 3), outline=255, width=5)
-    im.paste(Image.new('RGBA', (S, S), (255, 255, 255, 200)), (0, 0), ring)
     sh = Image.new('RGBA', (S + 60, S + 60), (0, 0, 0, 0))
     shm = Image.new('L', sh.size, 0)
-    ImageDraw.Draw(shm).ellipse((30, 40, 30 + S, 40 + S), fill=150)
+    ImageDraw.Draw(shm).ellipse((30, 40, 30 + S, 40 + S), fill=140)
     sh.paste(Image.new('RGBA', sh.size, (0, 0, 0, 255)), (0, 0), shm.filter(ImageFilter.GaussianBlur(12)))
     sh.alpha_composite(im, (30, 30))
     out = sh.resize((sh.width // 2, sh.height // 2), Image.LANCZOS)
@@ -911,155 +759,264 @@ def badge(icon):
 BRAND_COL = {'instagram': (225, 48, 108), 'facebook': (24, 119, 242), 'tiktok': (37, 244, 238)}
 
 
-def soft_dot(r):
-    key = ('dot', r)
+# ============================================================ the resignation notice (same panel language, red alert)
+N_TOP = 470
+
+
+def alert_icon(d, cx, cy, r):
+    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=ALERT + (255,))
+    d.rounded_rectangle((cx - 2.5, cy - r * 0.55, cx + 2.5, cy + r * 0.18), 2, fill=(255, 255, 255, 255))
+    d.ellipse((cx - 3, cy + r * 0.34, cx + 3, cy + r * 0.34 + 6), fill=(255, 255, 255, 255))
+
+
+def render_notice(width, pulse):
+    key = ('notice', width, round(pulse, 2))
+    if key in _cache:
+        return _cache[key]
+    M, h = BOX_M, P_H
+    L = Image.new('RGBA', (width + 2 * M, h + 2 * M), (0, 0, 0, 0))
+    pm = rrect_mask(width, h, P_R)
+    sh = Image.new('L', L.size, 0)
+    sh.paste(pm, (M, M + 14))
+    L.paste(Image.new('RGBA', L.size, (0, 0, 0, 255)), (0, 0), sh.filter(ImageFilter.GaussianBlur(24)).point(lambda v: int(v * 0.55)))
+    g = Image.new('L', L.size, 0)
+    ImageDraw.Draw(g).rounded_rectangle((M - 3, M - 3, M + width + 2, M + h + 2), P_R + 3, outline=255, width=8)
+    L.paste(Image.new('RGBA', L.size, ALERT + (255,)), (0, 0), g.filter(ImageFilter.GaussianBlur(14)).point(lambda v: int(v * (0.25 + 0.45 * pulse))))
+    panel = Image.new('RGBA', (width, h), (0, 0, 0, 0))
+    pd = ImageDraw.Draw(panel)
+    pd.rounded_rectangle((0, 0, width - 1, h - 1), P_R, fill=(9, 8, 15, 178))
+    sheen = Image.new('L', (width, h), 0)
+    sd = ImageDraw.Draw(sheen)
+    for y in range(h // 2):
+        sd.line((0, y, width, y), fill=int(30 * (1 - y / (h / 2))))
+    panel.paste(Image.new('RGBA', (width, h), (255, 255, 255, 255)), (0, 0), ImageChops.multiply(sheen, pm))
+    pd = ImageDraw.Draw(panel)
+    pd.rounded_rectangle((0, 0, width - 1, h - 1), P_R, outline=(255, 255, 255, 110), width=3)
+    hy = P_PAD_TOP + P_HEAD // 2
+    alert_icon(pd, width - P_PAD_X - 13, hy, 14 + 2 * pulse)
+    pd.text((width - P_PAD_X - 38, hy), 'התראה', font=F_NLABEL, fill=(255, 150, 160, 240), anchor='rm', direction='rtl')
+    pd.text((P_PAD_X, hy), 'עכשיו', font=F_NLABEL, fill=(255, 255, 255, 120), anchor='lm')
+    cy = P_PAD_TOP + P_HEAD + P_GAP + P_LINE // 2
+    pd.text((width - P_PAD_X, cy), NOTICE, font=F_NOTICE, fill=(255, 255, 255, 255), anchor='rm', direction='rtl')
+    L.alpha_composite(panel, (M, M))
+    full = Image.new('L', L.size, 0)
+    full.paste(pm, (M, M))
+    _cache[key] = (L, full)
+    return L, full
+
+
+NW = int(max(640, tlen(NOTICE, F_NOTICE) + 2 * P_PAD_X + 24))
+
+
+def draw_notice(frame, t):
+    if not (NOTIF_T <= t < PUSH[0] + 0.2):
+        return
+    p = clamp((t - NOTIF_T) / 0.28)
+    a = smooth(p * 1.6)
+    dy = -46 * (1 - ease_out_back(p, 2.0))
+    if t >= PUSH[0]:
+        q = clamp((t - PUSH[0]) / 0.2)
+        a *= 1 - q
+        dy -= 60 * ease_in_cubic(q)
+    pulse = max(0.0, math.sin(min(1.0, (t - NOTIF_T) / 0.5) * math.pi)) if t < NOTIF_T + 0.5 else 0.25 + 0.25 * math.sin((t - NOTIF_T) * 6)
+    lay, pm = render_notice(NW, pulse)
+    composite_panel(frame, lay, pm, centered_x(NW), int(N_TOP + dy), a, 0.96 + 0.04 * p)
+
+
+# ============================================================ push-in blur
+def zoom_blur(img, center, strength, n=6):
+    if strength <= 0.003:
+        return img
+    acc = np.array(img).astype(np.float32)
+    cx, cy = center
+    for i in range(1, n):
+        s = 1 + strength * i / (n - 1)
+        cw, ch = W / s, H / s
+        x0 = clamp(cx - cx / s, 0, W - cw); y0 = clamp(cy - cy / s, 0, H - ch)
+        acc += np.array(img.resize((W, H), Image.BILINEAR, box=(x0, y0, x0 + cw, y0 + ch))).astype(np.float32)
+    return Image.fromarray((acc / n).astype(np.uint8))
+
+
+EYES_OUT = ((EYES_V7[0] - 1) * W / 702, EYES_V7[1] * H / 1248)
+
+
+def push_blur_amount(t):
+    if PUSH[0] <= t < VS7:
+        u = (t - PUSH[0]) / (VS7 - PUSH[0])
+        return 0.08 * ease_in_cubic(u)
+    if VS7 <= t < VS7 + 0.14:
+        return 0.08 * (1 - (t - VS7) / 0.14)
+    return 0.0
+
+
+# ============================================================ end slide: colour shapes sweep in on the beat
+def slide_background(t):
+    if 'bg' not in _cache:
+        ys = np.linspace(0, 1, H)[:, None, None]
+        xs = np.linspace(0, 1, W)[None, :, None]
+        top, bot = np.array(PURPLE, np.float32), np.array(PURPLE_D, np.float32)
+        base = top * (1 - ys) + bot * ys
+        glow = np.exp(-(((xs - 0.5) / 0.55) ** 2 + ((ys - 0.36) / 0.30) ** 2))
+        base = base + glow * np.array([70, 22, 90], np.float32)
+        _cache['bg'] = Image.fromarray(np.clip(base.repeat(W, 1) if base.shape[1] == 1 else base, 0, 255).astype(np.uint8))
+    return _cache['bg'].copy()
+
+
+BANDS = [  # colour, centre y, thickness, comes from (-1 left / +1 right), start offset
+    (PINK, 80, 520, -1, 0.00),
+    (TURQ, 520, 520, +1, 0.04),
+    (PURPLE, 960, 520, -1, 0.08),
+    ((255, 255, 255), 1400, 520, +1, 0.12),
+    (PINK, 1840, 520, -1, 0.16),
+]
+ANG = -16
+
+
+def band_layer(color, thick):
+    key = ('band', color, thick)
     if key not in _cache:
-        S = r * 6
-        m = Image.new('L', (S, S), 0)
-        ImageDraw.Draw(m).ellipse((S / 2 - r, S / 2 - r, S / 2 + r, S / 2 + r), fill=255)
-        m = m.filter(ImageFilter.GaussianBlur(r * 0.9))
-        _cache[key] = m
+        L = 2600
+        im = Image.new('RGBA', (L, thick), color + (255,))
+        m = rrect_mask(L, thick, thick // 2)
+        im.putalpha(m)
+        _cache[key] = im.rotate(ANG, resample=Image.BICUBIC, expand=True)
     return _cache[key]
 
 
-_rng = np.random.default_rng(21)
-PARTICLES = [dict(x=_rng.uniform(40, 1040), y=_rng.uniform(600, 1950), v=_rng.uniform(28, 75),
-                  r=int(_rng.integers(2, 7)), a=_rng.uniform(0.25, 0.75), ph=_rng.uniform(0, 6.28),
-                  sw=_rng.uniform(8, 22)) for _ in range(54)]
-
-
-def warm_light(frame, t):
-    """Golden ambience for the end card: a warm glow behind the text and drifting gold dust."""
-    k = smooth((t - (CTA1_T - 0.2)) / 0.6)
-    if k <= 0:
-        return frame
-    bump = 0.0
-    if t >= FINAL_HIT - 0.05:
-        bump = math.exp(-(t - FINAL_HIT) * 2.2) * 0.9 if t >= FINAL_HIT else 0
-    if 'glow' not in _cache:
-        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-        g = np.exp(-(((xx - 540) / 560) ** 2 + ((yy - 1250) / 420) ** 2))
-        _cache['glow'] = g
-    g = _cache['glow'] * (0.16 * k + 0.22 * bump)
-    light = g[:, :, None] * np.array([255, 182, 78], np.float32)
-    dust = Image.new('L', (W, H), 0)
-    for p in PARTICLES:
-        age = t - (CTA1_T - 0.2)
-        y = p['y'] - p['v'] * age
-        y = (y - 600) % 1400 + 600
-        x = p['x'] + p['sw'] * math.sin(age * 1.3 + p['ph'])
-        tw = 0.6 + 0.4 * math.sin(age * 5 + p['ph'] * 3)
-        d = soft_dot(p['r'])
-        dust.paste(Image.new('L', d.size, int(255 * p['a'] * tw * k)), (int(x - d.width / 2), int(y - d.height / 2)), d)
-    dn = np.array(dust).astype(np.float32)[:, :, None] / 255 * np.array([255, 214, 130], np.float32)
-    light = light + dn * (1 + bump)
-    a = np.array(frame).astype(np.float32)
-    res = 255 - (255 - a) * (255 - np.clip(light, 0, 255)) / 255
-    return Image.fromarray(np.clip(res, 0, 255).astype(np.uint8))
-
-
-def fingertip_out(t):
-    rect, _ = camera_rect('s5', 'v5', t)
-    x0, y0, cw, ch = rect
-    return (333 - x0) * W / cw, (640 - y0) * H / ch
-
-
-def draw_comet(frame, t):
-    if not (FINGER_T <= t < CTA1_T + 0.05):
-        return
-    u = ease_in_out((t - FINGER_T) / (CTA1_T - FINGER_T))
-    sx, sy = fingertip_out(t)
-    l1, w1 = text_layer(CTA_LINE1, F_CTA1)
-    ex, ey = W / 2 + w1 / 2, CTA1_Y
-    layer = Image.new('L', (W, H), 0)
-    d = ImageDraw.Draw(layer)
-    for k in range(14):
-        v = max(0.0, u - k * 0.035)
-        px, py = sx + (ex - sx) * v, sy + (ey - sy) * v - 60 * math.sin(math.pi * v)
-        r = 13 - k * 0.8
-        if r > 1:
-            d.ellipse((px - r, py - r, px + r, py + r), fill=int(255 * (1 - k / 14)))
-    glow = layer.filter(ImageFilter.GaussianBlur(10))
-    light = np.array(ImageChops.add(layer, glow)).astype(np.float32)[:, :, None] / 255 * np.array([255, 214, 120], np.float32)
-    a = np.array(frame).astype(np.float32)
-    frame.paste(Image.fromarray(np.clip(255 - (255 - a) * (255 - light) / 255, 0, 255).astype(np.uint8)))
-
-
-def draw_end(frame, t):
-    if t < CUT_E:
-        return frame
-    frame = warm_light(frame, t)
-    draw_comet(frame, t)
-    # --- the call to action, written by light, then tucked up as one compact line
-    l1, w1 = text_layer(CTA_LINE1, F_CTA1)
-    l2, w2 = line2_layer()
-    if t >= CTA1_T:
-        mu = ease_in_out((t - COMPACT_T) / 0.38) if t >= COMPACT_T else 0.0
-        s_c = 860 / (w1 + w2 + 28)
-        total = s_c * (w1 + w2) + 28
-        c1 = (W / 2 + total / 2 - s_c * w1 / 2, COMPACT_Y)
-        c2 = (W / 2 - total / 2 + s_c * w2 / 2, COMPACT_Y + 3)
-        for spr, tw0, pos_big, pos_c, t0 in ((l1, w1, (W / 2, CTA1_Y), c1, CTA1_T), (l2, w2, (W / 2, CTA2_Y), c2, CTA2_T)):
-            if t < t0:
-                continue
-            u = clamp((t - t0) / 0.36)
-            img = wipe_reveal(spr, ease_out_cubic(u))
-            sc = 1 + (s_c - 1) * mu
-            cx = pos_big[0] + (pos_c[0] - pos_big[0]) * mu
-            cy = pos_big[1] + (pos_c[1] - pos_big[1]) * mu
-            place_sprite(frame, img, cx, cy, sc, 1.0)
-    # --- studio name: tracked gold letters settle in on the downbeat, the logo above glints
-    if t >= NAME_T:
-        p = clamp((t - NAME_T) / 0.45)
-        spr, tw = studio_layer(8 + 26 * (1 - ease_out_cubic(p)))
-        place_sprite(frame, spr, W / 2, STUDIO_Y, 1.0, smooth(p * 1.4))
-    # --- services
-    if t >= SERV_T:
-        parts = [text_layer(s, F_SERV2) for s in SERVICES]
-        sep = 44
-        total = sum(v for _, v in parts) + sep * (len(parts) - 1)
-        x = W / 2 + total / 2
-        for i, (spr, v) in enumerate(parts):
-            p = clamp((t - SERV_T - i * 0.07) / 0.28)
-            if p > 0:
-                place_sprite(frame, spr, x - v / 2, SERV2_Y + 16 * (1 - ease_out_cubic(p)), 1.0, smooth(p * 1.5))
-            x -= v
-            if i < len(parts) - 1:
-                pb = clamp((t - SERV_T - i * 0.07 - 0.1) / 0.2)
-                if pb > 0:
-                    bar = Image.new('RGBA', (5, 44), GOLD + (int(255 * pb),))
-                    frame.paste(bar, (int(x - sep / 2 - 2), int(SERV2_Y - 22)), bar)
-                x -= sep
-    # --- networks: colour badges pop in on the beat, a ring bursts, the handle slides in
-    widest = max(text_layer(h, F_HANDLE, contour=5, direction='ltr')[1] for _, h in SOCIALS)
-    block = BADGE + 28 + widest
-    bx = W / 2 - block / 2
-    beat_phase = None
-    for i, ((icon, handle), tin) in enumerate(zip(SOCIALS, SOC_TIMES)):
-        if t < tin:
+def draw_bands(frame, t):
+    """Bands rush in from both sides, cover the frame, then rush on and reveal the brand slide."""
+    for color, cy, thick, side, off in BANDS:
+        ti = t - T_SHAPES - off
+        if ti < 0:
             continue
-        y = SOC_Y[i]
-        p = clamp((t - tin) / 0.30)
-        sc = ease_out_back(p, 2.6)
-        # gentle breathing on every later beat keeps the card in time with the music
-        since = t - tin
-        if since > 0.5:
-            ph = ((t - MUSIC_FINALE_START - LOOP_E) % 0.5) / 0.5
-            sc *= 1 + 0.045 * math.exp(-ph * 6)
-        b = badge(icon)
-        place_sprite(frame, b, bx + BADGE / 2, y, max(0.01, sc), smooth(p * 2), rot=-28 * (1 - ease_out_cubic(p)))
-        rp = clamp((t - tin) / 0.42)
-        if 0 < rp < 1:
-            r = BADGE / 2 + 46 * ease_out_cubic(rp)
-            ring = Image.new('RGBA', (int(2 * r + 12), int(2 * r + 12)), (0, 0, 0, 0))
-            ImageDraw.Draw(ring).ellipse((6, 6, 6 + 2 * r, 6 + 2 * r), outline=BRAND_COL[icon] + (int(230 * (1 - rp)),),
-                                         width=max(1, int(7 * (1 - rp))))
-            frame.paste(ring, (int(bx + BADGE / 2 - ring.width / 2), int(y - ring.height / 2)), ring)
-        ph = clamp((t - tin - 0.06) / 0.28)
-        if ph > 0:
-            spr, hw = text_layer(handle, F_HANDLE, contour=5, direction='ltr')
-            dx = -40 * (1 - ease_out_cubic(ph))
-            place_sprite(frame, spr, bx + BADGE + 28 + hw / 2 + dx, y, 1.0, smooth(ph * 1.6))
+        inn = ease_out_cubic(ti / 0.24)
+        out = ease_in_cubic((ti - 0.36) / 0.26)
+        x = side * 1900 * (1 - inn) - side * 1900 * out
+        if abs(x) >= 1899:
+            continue
+        b = band_layer(color, thick)
+        frame.paste(b, (int(W / 2 + x - b.width / 2), int(cy - b.height / 2)), b)
+
+
+def deco(frame, t):
+    """Two shapes stay behind as a living frame for the slide."""
+    u = t - T_SHAPES - 0.5
+    if u < 0:
+        return
+    k = ease_out_back(clamp(u / 0.35), 1.6)
+    beat = math.exp(-((t - T_SHAPES) % (2 * EIGHTH)) / (2 * EIGHTH) * 5)
+    d = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    dd = ImageDraw.Draw(d)
+    r1 = 250 * k * (1 + 0.025 * beat)
+    c1 = (-40 + 18 * math.sin(u * 0.9), 1660 + 14 * math.cos(u * 0.7))
+    dd.ellipse((c1[0] - r1, c1[1] - r1, c1[0] + r1, c1[1] + r1), fill=TURQ + (235,))
+    r2 = 170 * k
+    c2 = (1120 + 16 * math.cos(u * 0.8), 230 + 12 * math.sin(u * 1.1))
+    dd.ellipse((c2[0] - r2, c2[1] - r2, c2[0] + r2, c2[1] + r2), fill=PINK + (235,))
+    r3 = 330 * k
+    dd.ellipse((c2[0] - r3, c2[1] - r3, c2[0] + r3, c2[1] + r3), outline=(255, 255, 255, 110), width=4)
+    dd.ellipse((c1[0] - r1 - 70, c1[1] - r1 - 70, c1[0] + r1 + 70, c1[1] + r1 + 70), outline=PINK + (150,), width=5)
+    frame.paste(d, (0, 0), d)
+
+
+def logo_layer(width):
+    key = ('logo', width)
+    if key not in _cache:
+        h = int(LOGO.height * width / LOGO.width)
+        lg = LOGO.resize((width, h), Image.LANCZOS).filter(ImageFilter.UnsharpMask(1.4, 70, 2))
+        glow = Image.new('RGBA', (width + 120, h + 120), (0, 0, 0, 0))
+        gm = Image.new('L', glow.size, 0)
+        gm.paste(lg.getchannel('A'), (60, 60))
+        glow.paste(Image.new('RGBA', glow.size, (255, 190, 90, 255)), (0, 0), gm.filter(ImageFilter.GaussianBlur(26)).point(lambda v: int(v * 0.45)))
+        glow.alpha_composite(lg, (60, 60))
+        _cache[key] = glow
+    return _cache[key]
+
+
+def pill_layer():
+    if 'pill' not in _cache:
+        txt, tw = text_layer(CTA_PILL, F_PILL, contour=0, shadow=0)
+        w, h = tw + 96, 104
+        im = Image.new('RGBA', (w + 40, h + 40), (0, 0, 0, 0))
+        sh = Image.new('L', im.size, 0)
+        ImageDraw.Draw(sh).rounded_rectangle((20, 30, 20 + w, 30 + h), h // 2, fill=150)
+        im.paste(Image.new('RGBA', im.size, (0, 0, 0, 255)), (0, 0), sh.filter(ImageFilter.GaussianBlur(12)))
+        ImageDraw.Draw(im).rounded_rectangle((20, 20, 20 + w, 20 + h), h // 2, fill=PINK + (255,))
+        im.alpha_composite(txt, (20 + w // 2 - txt.width // 2, 20 + h // 2 - txt.height // 2 + 2))
+        _cache['pill'] = im
+    return _cache['pill']
+
+
+LOGO_Y, TAG1_Y, TAG2_Y, SERV_Y3, PILL_Y = 440, 742, 856, 960, 1068
+SOC_Y3 = [1196, 1306, 1416]
+
+
+def pop_in(t, t0, dur=0.26):
+    p = clamp((t - t0) / dur)
+    return p, ease_out_back(p, 2.2), smooth(p * 1.6)
+
+
+def draw_slide(frame, t):
+    if t < T_SHAPES:
+        return frame
+    # behind the bands the brand slide replaces the close-up once the frame is covered
+    if t >= T_SHAPES + 0.30:
+        frame = slide_background(t)
+        deco(frame, t)
+        # logo
+        p, s, a = pop_in(t, SLIDE['logo'], 0.34)
+        if p > 0:
+            place_sprite(frame, logo_layer(800), W / 2, LOGO_Y, 0.82 + 0.18 * s, a)
+        # tagline, two bold lines
+        for txt, col, y, t0 in ((TAG1, (255, 255, 255), TAG1_Y, SLIDE['tag1']), (TAG2, TURQ, TAG2_Y, SLIDE['tag2'])):
+            p, s, a = pop_in(t, t0)
+            if p > 0:
+                spr, _ = text_layer(txt, F_TAG, col, contour=0, shadow=0.45)
+                place_sprite(frame, spr, W / 2, y + 40 * (1 - ease_out_cubic(p)), 0.9 + 0.1 * s, a)
+        # services with turquoise separators
+        p, s, a = pop_in(t, SLIDE['serv'])
+        if p > 0:
+            parts = [text_layer(x, F_SERV3, contour=0, shadow=0.4) for x in SERVICES]
+            sep = 44
+            total = sum(v for _, v in parts) + sep * (len(parts) - 1)
+            x = W / 2 + total / 2
+            for i, (spr, v) in enumerate(parts):
+                place_sprite(frame, spr, x - v / 2, SERV_Y3 + 18 * (1 - ease_out_cubic(p)), 1.0, a)
+                x -= v
+                if i < len(parts) - 1:
+                    bar = Image.new('RGBA', (5, 42), TURQ + (int(255 * a),))
+                    frame.paste(bar, (int(x - sep / 2 - 2), int(SERV_Y3 - 21)), bar)
+                    x -= sep
+        # call to action pill
+        p, s, a = pop_in(t, SLIDE['cta'], 0.3)
+        if p > 0:
+            beat = math.exp(-((t - T_SHAPES) % (2 * EIGHTH)) / (2 * EIGHTH) * 6) if p >= 1 else 0
+            place_sprite(frame, pill_layer(), W / 2, PILL_Y, (0.6 + 0.4 * s) * (1 + 0.03 * beat), a)
+        # networks at the bottom: original icons, big handles, colour ring on each beat
+        widest = max(text_layer(h, F_HANDLE, contour=0, direction='ltr', shadow=0.4)[1] for _, h in SOCIALS)
+        bx = W / 2 - (BADGE + 26 + widest) / 2
+        for i, ((icon, handle), tin) in enumerate(zip(SOCIALS, SOC_TIMES)):
+            p = clamp((t - tin) / 0.28)
+            if p <= 0:
+                continue
+            y = SOC_Y3[i]
+            sc = ease_out_back(p, 2.6)
+            if t - tin > 0.5:
+                ph = ((t - T_SHAPES) % (2 * EIGHTH)) / (2 * EIGHTH)
+                sc *= 1 + 0.045 * math.exp(-ph * 6)
+            place_sprite(frame, badge(icon), bx + BADGE / 2, y, max(0.01, sc), smooth(p * 2), rot=-28 * (1 - ease_out_cubic(p)))
+            rp = clamp((t - tin) / 0.42)
+            if 0 < rp < 1:
+                r = BADGE / 2 + 40 * ease_out_cubic(rp)
+                ring = Image.new('RGBA', (int(2 * r + 12), int(2 * r + 12)), (0, 0, 0, 0))
+                ImageDraw.Draw(ring).ellipse((6, 6, 6 + 2 * r, 6 + 2 * r), outline=BRAND_COL[icon] + (int(230 * (1 - rp)),),
+                                             width=max(1, int(7 * (1 - rp))))
+                frame.paste(ring, (int(bx + BADGE / 2 - ring.width / 2), int(y - ring.height / 2)), ring)
+            ph2 = clamp((t - tin - 0.05) / 0.26)
+            if ph2 > 0:
+                spr, hw = text_layer(handle, F_HANDLE, contour=0, direction='ltr', shadow=0.4)
+                place_sprite(frame, spr, bx + BADGE + 26 + hw / 2 - 40 * (1 - ease_out_cubic(ph2)), y, 1.0, smooth(ph2 * 1.6))
+    draw_bands(frame, t)
     return frame
 
 
@@ -1078,20 +1035,20 @@ def segment_frames(keep=None):
 
 def render_frame(k, clip, cam, src):
     t = k / FPS
-    if clip == 'v5':
-        src = v5_source_fx(src, t)
+    if t >= T_SHAPES + 0.30:
+        return draw_slide(None, t)
     rect, shake = camera_rect(cam, clip, t)
     z = base_crop(clip)[0] / rect[2]
     if clip == 'v3' and ERASE_T <= t < S3E_T:
         fr = erase_frame(src, t, rect)
     else:
         fr = crop_resize(src, clip, rect, shake)
-    fr = finish(fr, z)
-    fr = pixel_transition(fr, t)
-    fr = swirl_overlay(fr, t)
-    fr = draw_end(fr, t)
+    fr = finish(fr, min(z, 1.3))
+    fr = zoom_blur(fr, EYES_OUT, push_blur_amount(t))
     draw_prompts(fr, t)
+    draw_notice(fr, t)
     draw_dialogue(fr, t)
+    fr = draw_slide(fr, t)
     return fr
 
 

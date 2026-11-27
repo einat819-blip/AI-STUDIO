@@ -26,11 +26,13 @@ SFX_IDS = {
     'shimmer': 'epidemic_sound:bf4716be-4f43-4a79-8c21-f3325bc3f8cf',   # Magic shimmer, transform 04
     'boom': 'epidemic_sound:cdd4ddcb-5158-4612-9633-0cb737e0c1c5',      # Cinematic hit, bright, airy
     'whoosh': 'epidemic_sound:27384f5f-7e69-4f29-916d-b31071cf0112',    # Tech data transition 02
+    'notify1': 'epidemic_sound:a6dae59d-6111-42cb-887d-9bad152480e1',   # UI alert, notification, message
 }
 MUSIC = {
     'm1_comic': 'm1_comic.mp3',        # ElevenLabs Music v2.5 via Higgsfield, 14 s comic pizzicato bed
     'm2_romance': 'm2_romance.mp3',    # 10 s melodramatic romance sting
-    'm5_finaleB': 'm5_finaleB.mp3',    # 15 s riser, impact at 3.93 s, final hit at 11.85 s
+    'm5_finaleB': 'm5_finaleB.mp3',    # 15 s riser, impact at 3.93 s, final hit at 11.85 s (fantasy ending, archived)
+    'm6_brandA': 'm6_brandA.mp3',      # 13 s confident intro, joyful peak at 7.37 s, final hit at 11.68 s
 }
 
 
@@ -83,11 +85,13 @@ def icons():
     src = os.path.join(WORK, 'fontpkg', 'node_modules', 'simple-icons', 'icons')
     env = dict(os.environ, NODE_PATH=subprocess.check_output(['npm', 'root', '-g']).decode().strip())
     run(['node', js, src, out], env=env)
+    # the studio logo, lifted from clip 5 (replace icons/logo.png with the original file when available)
+    run([sys.executable, os.path.join(HERE, 'logo_extract.py'), os.path.abspath(f'{ROOT}/source/v5.mp4'), os.path.join(out, 'logo.png')])
 
 
 def sources():
     d = os.path.join(WORK, 'src'); os.makedirs(d, exist_ok=True)
-    for i in range(1, 6):
+    for i in range(1, 8):
         dst = f'{d}/v{i}.mp4'
         if not os.path.exists(dst):
             os.symlink(os.path.abspath(f'{ROOT}/source/v{i}.mp4'), dst)

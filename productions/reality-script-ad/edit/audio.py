@@ -1,4 +1,4 @@
-"""Sound design and mix for the AI NATI STUDIOS "reality script" ad, version 4.
+"""Sound design and mix for the AI NATI STUDIOS "reality script" ad, version 5 (the AI resigns).
 
 Places music cues, sound effects and (when present) the voice files on the timeline,
 ducks the music under every dialogue / voice-over slot, then masters to about -14 LUFS.
@@ -124,55 +124,33 @@ type_sounds(BKSP, gain=-16)
 place(mix, enter_n, ERASE_T, -12)
 place(mix, norm_to(fade(clip(whoosh, 0.15, 0.95), 0.004, 0.12), -23), ERASE_T + 0.02)
 place(mix, norm_to(fade(clip(glitch, 0.85, 1.10), 0.003, 0.05), -28), ERASE_T + 0.10)
-place(music_bus, norm_to(fade(clip(m1, 2.62, 2.62 + (CUT_D - PIX_OUT - S3E_T)), 0.05, 0.015), -20), S3E_T)
 
-# laptop rebuild: a short data whoosh and block ticks
-place(mix, norm_to(fade(clip(whoosh, 0.10, 0.80), 0.003, 0.08), -24), CUT_D - PIX_OUT - 0.03)
-place(mix, norm_to(fade(clip(glitch, 1.20, 1.45), 0.003, 0.05), -29), CUT_D)
+# the AI resigns: the comic bed comes back, the alert, then the music drops out before the punch
+place(music_bus, norm_to(fade(clip(m1, 2.62, 2.62 + (MUSIC_STOP - S3E_T)), 0.05, 0.02), -20), S3E_T)
+notify = lw('notify1')
+place(mix, norm_to(fade(notify, 0.002, 0.08), -17), NOTIF_T)
 
-# S4 snap, shimmer, riser into the reveal impact
-place(mix, snap / np.abs(snap).max(), SNAP_T - 0.45, -6)
-place(mix, norm_to(fade(clip(shimmer, 0.0, 4.6), 0.005, 0.6), -25), SNAP_T + 0.03)
-rv = fade(clip(shimmer, 0.15, 3.2)[::-1].copy(), 0.4, 0.01)
-place(mix, norm_to(rv, -24), IMPACT_T - len(rv) / SR)
-place(mix, norm_to(fade(clip(boom, 0.0, 4.0), 0.002, 1.5), -21), IMPACT_T - 0.05)
-
-# finale cue with a 4-bar loop so it keeps building to the last frame, final hit on the end card
-xf = int(0.015 * SR)
-part_a = clip(m5, 0.0, LOOP_E)
-part_b = clip(m5, LOOP_S, None)
+# right after the punch: light, confident music under the push-in and the personal line,
+# a joyful peak exactly on the colour shapes, one bar looped, ending on its own hit (no fade)
+m6 = lw('m6_brandA')
+xf = int(0.012 * SR)
+a_part = clip(m6, M6_IN, M6_LOOP_E)
+b_part = clip(m6, M6_LOOP_S, M6_HIT + 0.55)
 ramp = np.linspace(0, 1, xf)[:, None]
-joined = np.concatenate([part_a[:-xf], part_a[-xf:] * (1 - ramp) + part_b[:xf] * ramp, part_b[xf:]])
-fin = norm_to(fade(joined[: int((DUR - MUSIC_FINALE_START) * SR)], 0.005, 0.25), -19)
-# lift: the cue grows about 3.5 dB from the studio name to the final hit
-n0 = int((COMPACT_T - MUSIC_FINALE_START) * SR); n1 = int((FINAL_HIT - MUSIC_FINALE_START) * SR)
-gain = np.ones(len(fin), np.float32)
-gain[n0:n1] = np.linspace(1, db(3.5), max(1, n1 - n0)); gain[n1:] = db(3.5)
-place(music_bus, fin * gain[:, None], MUSIC_FINALE_START)
-
-# golden-light transition: shimmer rising into the cut, a soft whoosh through it
-place(mix, norm_to(fade(clip(shimmer, 0.0, 1.6), 0.25, 0.5), -24), SWIRL[0])
-place(mix, norm_to(fade(clip(whoosh, 0.10, 0.95), 0.01, 0.15), -26), CUT_E - 0.22)
-# her fingertip light and the lines written by it
-place(mix, norm_to(fade(clip(shimmer, 0.5, 1.4), 0.02, 0.4), -26), FINGER_T)
-place(mix, norm_to(fade(clip(shimmer, 0.6, 1.2), 0.02, 0.3), -30), CTA2_T)
-# studio name glint
-place(mix, norm_to(fade(clip(shimmer, 0.3, 1.5), 0.02, 0.5), -27), NAME_T)
-# a soft pop for each network badge, on the beat
+cue = np.concatenate([a_part[:-xf], a_part[-xf:] * (1 - ramp) + b_part[:xf] * ramp, b_part[xf:]])
+cue = fade(cue, 0.08, 0.06)
+place(music_bus, norm_to(cue, -19), M6_START)
+place(mix, norm_to(fade(clip(whoosh, 0.10, 0.80), 0.01, 0.12), -27), PUSH[0] + 0.02)
+place(mix, norm_to(fade(clip(whoosh, 0.05, 0.90), 0.005, 0.12), -22), T_SHAPES - 0.12)
 tt = np.arange(int(0.12 * SR)) / SR
 thump = np.sin(2 * np.pi * np.cumsum(np.linspace(190, 90, len(tt))) / SR) * np.exp(-tt * 38)
 tick = rng.standard_normal(len(tt)) * np.exp(-tt * 140)
-pop = np.repeat((thump * 0.8 + tick * 0.25)[:, None], 2, 1).astype(np.float32)
-pop = fade(pop, 0.001, 0.03)
+pop = fade(np.repeat((thump * 0.8 + tick * 0.25)[:, None], 2, 1).astype(np.float32), 0.001, 0.03)
 for i, ts in enumerate(SOC_TIMES):
-    place(mix, norm_to(pop, -21 + i * 0.8), ts - 0.005)
-# build into the final hit, then an airy tail under the last second
-rv2 = fade(clip(shimmer, 0.15, 3.0)[::-1].copy(), 0.5, 0.01)
-place(mix, norm_to(rv2, -23), FINAL_HIT - len(rv2) / SR)
-place(mix, norm_to(fade(clip(boom, 0.0, DUR - FINAL_HIT + 0.05), 0.002, 0.2), -20), FINAL_HIT - 0.04)
+    place(mix, norm_to(pop, -22 + i * 0.8), ts - 0.005)
 
 # voice: dialogue and voice-over slots (files optional until the recordings arrive)
-slots = [(name, lines[0][0][2], t_end) for name, lines, t_end, _ in DIALOGUE] + [VO_SLOT]
+slots = [(name, lines[0][0][2], t_end) for name, lines, t_end, _ in DIALOGUE]
 for name, t0, t1 in slots:
     p = f'{SP}/vo/{name}.wav'
     if os.path.exists(p):
