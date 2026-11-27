@@ -45,10 +45,10 @@ def fonts():
     os.makedirs(pkg, exist_ok=True)
     if not os.path.exists(os.path.join(pkg, 'node_modules', '@fontsource', 'heebo')):
         run(['npm', 'init', '-y'], cwd=pkg, stdout=subprocess.DEVNULL)
-        run(['npm', 'install', '--silent', '@fontsource/heebo', '@fontsource/rubik'], cwd=pkg)
+        run(['npm', 'install', '--silent', '@fontsource/heebo', '@fontsource/rubik', 'simple-icons'], cwd=pkg)
     out = os.path.join(WORK, 'fonts'); os.makedirs(out, exist_ok=True)
     base = os.path.join(pkg, 'node_modules', '@fontsource')
-    for fam, w in [('heebo', 500), ('heebo', 700), ('rubik', 800)]:
+    for fam, w in [('heebo', 600), ('heebo', 700), ('rubik', 700), ('rubik', 800)]:
         parts = []
         for sub in ('hebrew', 'latin', 'latin-ext'):
             p = f'{base}/{fam}/files/{fam}-{sub}-{w}-normal.woff2'
@@ -57,6 +57,32 @@ def fonts():
                 tmp = f'{out}/_{fam}-{sub}-{w}.ttf'; f.save(tmp); parts.append(tmp)
         Merger().merge(parts).save(f'{out}/{fam}-{w}.ttf')
         print('font', fam, w)
+
+
+ICON_JS = r'''
+const { chromium } = require('playwright');
+const fs = require('fs');
+(async () => {
+  const b = await chromium.launch();
+  const p = await b.newPage({ viewport: { width: 256, height: 256 } });
+  for (const n of ['instagram', 'facebook', 'tiktok']) {
+    const svg = fs.readFileSync(`${process.argv[2]}/${n}.svg`, 'utf8').replace('<svg ', '<svg fill="#ffffff" width="256" height="256" ');
+    await p.setContent(`<html><body style="margin:0;background:transparent">${svg}</body></html>`);
+    await p.screenshot({ path: `${process.argv[3]}/${n}.png`, omitBackground: true, clip: { x: 0, y: 0, width: 256, height: 256 } });
+  }
+  await b.close();
+})();
+'''
+
+
+def icons():
+    """White Instagram / Facebook / TikTok glyphs from simple-icons (CC0), rendered with Playwright."""
+    out = os.path.join(WORK, 'icons'); os.makedirs(out, exist_ok=True)
+    js = os.path.join(out, 'render_icons.js')
+    open(js, 'w').write(ICON_JS)
+    src = os.path.join(WORK, 'fontpkg', 'node_modules', 'simple-icons', 'icons')
+    env = dict(os.environ, NODE_PATH=subprocess.check_output(['npm', 'root', '-g']).decode().strip())
+    run(['node', js, src, out], env=env)
 
 
 def sources():
@@ -85,6 +111,6 @@ def audio():
 
 if __name__ == '__main__':
     os.makedirs(WORK, exist_ok=True)
-    fonts(); sources(); audio()
+    fonts(); icons(); sources(); audio()
     os.makedirs(os.path.join(WORK, 'build'), exist_ok=True)
-    print('\nThen: python3 audio.py && master (see README) && python3 video.py <out.mp4>')
+    print('\nThen: python3 audio.py && python3 video.py <out.mp4>')
