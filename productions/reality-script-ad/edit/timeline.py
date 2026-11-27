@@ -1,47 +1,18 @@
-# Shared timeline for the AI NATI STUDIOS "reality script" ad, version 2.
-# Output: 1080x1920 at 30 fps. Source clips are 24 fps and are sampled frame-accurately
-# (no motion interpolation, so faces are never re-synthesised).
-# All times are in seconds on the output timeline. TIMING IS PROVISIONAL until the
-# voice files arrive: every dialogue word time below is meant to be replaced by the
-# real word timings of the recordings.
+# Shared timeline for the AI NATI STUDIOS "reality script" ad, version 3.
+# Output 1080x1920 at 30 fps. Source clips are 24 fps and are sampled frame-accurately
+# (no interpolation, faces are never re-synthesised).
+# TIMING IS PROVISIONAL until the voice files arrive: dialogue word times are placeholders.
 import random
 
 FPS = 30
 SRC_FPS = 24
 W, H = 1080, 1920
-TOTAL_FRAMES = 900  # 30.0 s
-
-# (clip, first source frame at 24 fps, output start frame, output end frame, camera move)
-SEGMENTS = [
-    ("v1", 44, 0, 156, "static"),     # S1  0.000 to 5.200   opening prompt
-    ("v2", 38, 156, 226, "roar"),     # S2a 5.200 to 7.533   lion roar, push and shake
-    ("v2", 138, 226, 294, "deadpan"), # S2b 7.533 to 9.800   deadpan close-up in silence
-    ("v3", 20, 294, 496, "erase"),    # S3  9.800 to 16.533  romance, snap zoom, erase
-    ("v4", 0, 496, 669, "static"),    # S4  16.533 to 22.300 snap and reveal (untouched)
-    ("v5", 0, 669, 900, "static"),    # S5  22.300 to 30.000 end card
-]
-CUT1 = 156 / FPS
-CUT2A = 226 / FPS
-CUT2 = 294 / FPS
-CUT4 = 496 / FPS
-CUT5 = 669 / FPS
-
-T1 = "אישה אלגנטית יושבת בסלון יוקרתי."
-T2 = "פתאום מופיע אריה ענק בסלון."
-T3 = "גבר מסתורי נכנס לחייה."
 
 
 def char_times(text, t0, t1, seed):
-    """Per-character key times with a human jitter, fitted to [t0, t1]."""
     rnd = random.Random(seed)
-    w = []
-    for ch in text:
-        base = 1.0 + rnd.uniform(-0.35, 0.35)
-        if ch == " ":
-            base *= 1.35
-        w.append(base)
-    tot = sum(w)
-    out, acc = [], 0.0
+    w = [(1.35 if ch == " " else 1.0) * (1.0 + rnd.uniform(-0.35, 0.35)) for ch in text]
+    tot, acc, out = sum(w), 0.0, []
     for x in w:
         out.append(t0 + (t1 - t0) * acc / tot)
         acc += x
@@ -49,58 +20,119 @@ def char_times(text, t0, t1, seed):
 
 
 def backspace_times(n, t0, t1, power=0.6):
-    """Accelerating backspace, like a held key that speeds up."""
     return [t0 + (t1 - t0) * ((i / max(1, n - 1)) ** power) for i in range(n)]
 
 
-# ---- S1 opening
+def f30(t):
+    """Snap a time to the 30 fps output grid."""
+    return round(t * FPS) / FPS
+
+
+T1 = "אישה אלגנטית יושבת בסלון יוקרתי."
+T2 = "פתאום מופיע אריה ענק בסלון."
+T3 = "גבר מסתורי נכנס לחייה."
+
+# ------------------------------------------------------------------ S1 the elegant woman
+V1_IN = 1.90                 # clip 1 start
+V1_BLINK = 7.71              # eyes closed: the cut to clip 2 hides here
+CUT_A = f30(V1_BLINK - V1_IN)            # 6.10  clip 1 -> clip 2 (matched framing)
 TYPE1 = char_times(T1, 0.10, 1.25, 11)
-SELECT_AT, CLEAR_AT = 3.70, 3.83
-TYPE2 = char_times(T2, 3.87, 4.70, 12)
-ENTER1 = 4.93
+SELECT_AT = 4.50
+CLEAR_AT = 4.62
+TYPE2 = char_times(T2, 4.66, 5.50, 12)
+PUSH1 = (4.50, CUT_A)        # slow push on clip 1 while the lion prompt is typed
+ENTER1 = 7.00                # after 1.5 s of reading
+REVEAL = (7.06, 7.66)        # pull back from her face, the lion is revealed
 
-# ---- S2 lion
-ROAR_A, ROAR_B = CUT1, 6.30          # roar takes, the second is cut dead on CUT2A
-P2_SHOW = 8.85
-TYPE3 = char_times(T3, 8.93, 9.38, 13)
-ENTER2 = 9.57
+# ------------------------------------------------------------------ S2 lion
+V2_IN = 0.30
+V2_ROAR_END = 3.00
+CUT_B = f30(REVEAL[1] + 0.84)               # deadpan close-up
+V2_ROAR_END = V2_IN + (CUT_B - CUT_A)
+ROAR_ON = REVEAL[0] + 0.03
+V2B_IN = 5.55                # she turns from the lion to the lens
+V2B_TURN = 8.00              # play forward to here, then hold by running back
+P2_SHOW = CUT_B + 1.80
+TYPE3 = char_times(T3, P2_SHOW + 0.08, P2_SHOW + 0.78, 13)
+ENTER2 = TYPE3[-1] + 1.50    # 1.5 s of reading
+CUT_C = f30(ENTER2 + 0.15)
 
-# ---- S3 the mysterious man (comic peak)
-ROMANCE_STOP = 11.60                 # her eyes land on the lens (clip 3 at 2.62 s)
-SNAP_IN = (11.60, 11.75, 1.00, 1.20) # snap zoom onto her face
-YEHUDA_PUSH = (12.60, 12.72, 1.20, 1.26)
-ZOOM_OUT = (13.42, 13.70, 1.26, 1.00)
-P3_SHOW = 11.82                      # prompt returns on the first "תמחק"
-BKSP = backspace_times(len(T3), 12.05, 13.28)
-P3_HIDE = 13.34
-GLITCH0, GLITCH1 = 13.80, 14.03      # the man vanishes (clip 3 at 4.83 s)
+# ------------------------------------------------------------------ S3 the mysterious man
+V3_IN = 1.00
+V3_LOOK = 2.62               # her eyes land on the lens
+HOLD_A, HOLD_B = 3.00, 3.40  # her frozen stare: play to B, run back to A, play on
+V3_ERASE = 4.79              # last clean frame before the generated vanish (bouquet still)
+V3_AFTER = 5.42              # first clean frame after the vanish
+ERASE_DUR = 8 / FPS
+LOOK_T = f30(CUT_C + (V3_LOOK - V3_IN))
+S3B_T = f30(CUT_C + (HOLD_B - V3_IN))                    # start of the run back
+S3C_T = f30(S3B_T + (HOLD_B - HOLD_A))                   # forward again from HOLD_A
+ERASE_T = f30(S3C_T + (V3_ERASE - HOLD_A))               # digital erase starts
+S3E_T = f30(ERASE_T + ERASE_DUR)                         # clean room, she is alone
+SNAP_IN = (LOOK_T, LOOK_T + 0.15, 1.00, 1.20)
+YEHUDA_T = f30(LOOK_T + 1.03)
+YEHUDA_PUSH = (YEHUDA_T, YEHUDA_T + 0.12, 1.20, 1.26)
+ZOOM_OUT = (ERASE_T - 0.42, ERASE_T - 0.05, 1.26, 1.00)
+P3_SHOW = LOOK_T + 0.13
+BKSP = backspace_times(len(T3), YEHUDA_T + 0.05, ERASE_T - 0.12)
+V3_OUT = 7.72
+PIX_OUT = 0.13               # clip 3 breaks into blocks ...
+PIX_SWAP = 0.17              # ... blocks of the new reality switch in, laptop first ...
+PIX_IN = 0.17                # ... and clip 4 sharpens just before the snap
+CUT_D = f30(S3E_T + (V3_OUT - V3_AFTER))
 
-# ---- S4 snap and reveal
-SNAP_T = CUT4 + 0.35
-IMPACT_T = CUT4 + 3.93               # music impact lands as the walls open
+# ------------------------------------------------------------------ S4 snap and reveal
+V4_REVEAL = 3.40             # the castle world opens up
+V4_OUT = 3.90                # shortened: no lingering once the world is revealed
+SNAP_T = CUT_D + 0.35
+IMPACT_T = CUT_D + V4_REVEAL
+CUT_E = f30(CUT_D + V4_OUT)
+MUSIC_FINALE_START = IMPACT_T - 3.93     # finale cue: impact at 3.93 s, final hit at 11.85 s
+FINAL_HIT = MUSIC_FINALE_START + 11.85
 
-# ---- S5 end card
-PULSE0, PULSE1 = 26.45, 26.95        # "אתם כן" pulse on the voice-over
-CTA_IN = 26.95
-FINAL_HIT = CUT4 + 11.85
+# ------------------------------------------------------------------ S5 end card
+X = CUT_E
+VO_SLOT = ("vo", X + 1.62, X + 4.42)     # "אצלנו המציאות לא קובעת את התסריט. אתם כן."
+PULSE0, PULSE1 = X + 3.92, X + 4.42      # "אתם כן" pulse
+CTA_IN = X + 4.52
+SLATE_T = f30(FINAL_HIT - 0.50)          # slate opens, the last network row lands on the final hit
+SLATE_HOLD = 4.0                         # contact details fully on screen at least this long
+SOC_T0 = SLATE_T + 0.20
+SOC_STAGGER = 0.15
+END_T = f30(SOC_T0 + 2 * SOC_STAGGER + 0.25 + SLATE_HOLD)
+TOTAL_FRAMES = int(round(END_T * FPS))
 
-# Dialogue: (marker, [[(word, highlight, start time)]], end time)
-# highlight: None, "gold" (brand / punch), "coral" (panic), "cyan" (sarcasm)
-DIALOGUE = [
-    ("d1", [[("אלגנטית?", "cyan", 2.20), ("התחלת", None, 2.85), ("טוב.", None, 3.08)]], 3.60),
-    ("d2", [[("אריה?", None, 7.85), ("איזה", None, 8.32), ("מקורי…", "cyan", 8.52)]], 9.00),
-    ("d3", [[("תמחק,", "coral", 11.80), ("תמחק!", "coral", 12.10)],
-            [("יהודה", "gold", 12.60), ("רואה", None, 12.86), ("את", None, 13.02), ("זה!", None, 13.12)]], 13.45),
-    ("d4", [[("טוב,", None, 14.30), ("מספיק!", None, 14.52)],
-            [("תן", None, 15.05), ("לי", None, 15.18), ("לכתוב", None, 15.33), ("את", None, 15.60), ("התסריט.", "gold", 15.76)]], 16.40),
-    ("d5", [[("עכשיו", None, 22.45), ("אנחנו", None, 22.72), ("מדברים!", "gold", 23.00)]], 23.70),
-]
-VO_SLOT = ("vo", 23.95, 26.90)  # "אצלנו המציאות לא קובעת את התסריט. אתם כן."
-
-# End card copy and timing
-CTA_HEAD = [("יש", 26.95), ("לכם", 27.04), ("רעיון", 27.13), ("לסרט?", 27.24)]
-CTA_LINE2 = [("בואו", 27.40), ("נהפוך", 27.49), ("אותו", 27.58), ("למציאות.", 27.72)]
+CTA_HEAD = [("יש", 0.00), ("לכם", 0.09), ("רעיון", 0.18), ("לסרט?", 0.29)]
+CTA_LINE2 = [("בואו", 0.50), ("נהפוך", 0.59), ("אותו", 0.68), ("למציאות.", 0.82)]
 SERVICES = ["סרטים אישיים", "פרסומות", "הזמנות לאירועים"]
-SERVICES_IN = 27.95
-SOCIALS = [("instagram", "@ainati_studios", 28.08), ("facebook", "AI NATI STUDIOS", 28.20),
-           ("tiktok", "@einat.cohen.elyas", 28.32)]
+SOCIALS = [("instagram", "@ainati_studios"), ("facebook", "AI NATI STUDIOS"), ("tiktok", "@einat.cohen.elyas")]
+
+# ------------------------------------------------------------------ dialogue (placeholders until the voice)
+# (slot, [[(word, colour, start)]], end, style)   colour: None | "teal" | "gold" | "coral"
+DIALOGUE = [
+    ("d1", [[("אלגנטית?", "teal", 2.00), ("התחלת", None, 3.65), ("טוב.", None, 3.88)]], 4.42, None),
+    ("d2", [[("אריה?", None, CUT_B + 0.30), ("איזה", None, CUT_B + 0.74), ("מקורי…", "teal", CUT_B + 0.93)]], CUT_B + 1.60, None),
+    ("d3a", [[("תמחק,", "coral", LOOK_T + 0.08), ("תמחק!", "coral", LOOK_T + 0.38)]], YEHUDA_T - 0.10, "shake"),
+    ("d3b", [[("יהודה", "gold", YEHUDA_T), ("רואה", None, YEHUDA_T + 0.27),
+              ("את", None, YEHUDA_T + 0.43), ("זה!", None, YEHUDA_T + 0.55)]], S3E_T + 0.12, None),
+    ("d4", [[("טוב,", None, S3E_T + 0.10), ("מספיק!", None, S3E_T + 0.33)],
+            [("תן", None, S3E_T + 0.80), ("לי", None, S3E_T + 0.93), ("לכתוב", None, S3E_T + 1.08),
+             ("את", None, S3E_T + 1.35), ("התסריט.", "gold", S3E_T + 1.50)]], CUT_D - 0.22, None),
+    ("d5", [[("עכשיו", None, X + 0.15), ("אנחנו", None, X + 0.42), ("מדברים!", "gold", X + 0.70)]], X + 1.42, None),
+]
+
+# ------------------------------------------------------------------ edit list
+# Each entry: (clip, output start, output end, source time function name, camera)
+# source time functions are evaluated in video.py
+SEGMENTS = [
+    ("v1", 0.0, CUT_A, ("lin", V1_IN), "s1"),
+    ("v2", CUT_A, CUT_B, ("lin", V2_IN), "s2"),
+    ("v2", CUT_B, CUT_C, ("pingpong", V2B_IN, V2B_TURN), "deadpan"),
+    ("v3", CUT_C, S3B_T, ("lin", V3_IN), "s3"),
+    ("v3", S3B_T, S3C_T, ("rev", HOLD_B), "s3"),
+    ("v3", S3C_T, ERASE_T, ("lin", HOLD_A), "s3"),
+    ("v3", ERASE_T, S3E_T, ("hold", V3_ERASE), "s3"),
+    ("v3", S3E_T, CUT_D, ("lin", V3_AFTER), "s3"),
+    ("v4", CUT_D, CUT_E, ("lin", 0.0), "static"),
+    ("v5", CUT_E, END_T, ("clamp", 0.0, 8.0), "static"),
+]
