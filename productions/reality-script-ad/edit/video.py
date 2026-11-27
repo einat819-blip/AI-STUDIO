@@ -1,4 +1,4 @@
-"""Compositor for the AI NATI STUDIOS "reality script" ad, version 3 (1080x1920, 30 fps).
+"""Compositor for the AI NATI STUDIOS "reality script" ad, version 4 (1080x1920, 30 fps).
 
 Every output frame maps to a source frame through the edit list in timeline.py
 (forward, reverse, hold), gets a camera crop in source pixels (no interpolation of
@@ -225,6 +225,14 @@ def camera_rect(kind, clip, t):
         p0 = out_pos('v3', a_src)
         a_out = (lerp(p0[0], 300, k), lerp(p0[1], 600, k))
         return rect_from_anchor('v3', z, a_src, a_out), (0, 0)
+    if kind == 's5':
+        matched = rect_from_anchor('v5', 1.13, (327, 522), (545, 706))
+        if t < PULLBACK[0]:
+            return matched, (0, 0)
+        if t < PULLBACK[1]:
+            return lerp_rect(matched, rect_centered('v5', 1.0), ease_in_out((t - PULLBACK[0]) / (PULLBACK[1] - PULLBACK[0]))), (0, 0)
+        u = clamp((t - PULLBACK[1]) / (END_T - PULLBACK[1]))
+        return rect_centered('v5', 1.0 + 0.035 * ease_in_out(u)), (0, 0)
     return rect_centered(clip, 1.0), (0, 0)
 
 
@@ -660,129 +668,398 @@ def pixel_transition(frame, t):
     return frame
 
 
-# ============================================================ tagline pulse (end card)
-BANNER = (328, 437, 764, 548)
-
-
-def banner_pulse(frame, t):
-    if not (PULSE0 <= t < PULSE1):
-        return
-    u = (t - PULSE0) / (PULSE1 - PULSE0)
-    s = 1 + 0.11 * math.sin(math.pi * u) ** 1.5
-    x0, y0, x1, y1 = BANNER
-    reg = frame.crop(BANNER)
-    w, h = reg.size
-    big = reg.resize((int(w * s), int(h * s)), Image.LANCZOS)
-    arr = np.array(big).astype(np.float32)
-    gold = ((arr[:, :, 0] > 170) & (arr[:, :, 1] > 115) & (arr[:, :, 2] < 120)).astype(np.float32)
-    xx = np.arange(arr.shape[1])[None, :] + 0.45 * np.arange(arr.shape[0])[:, None]
-    gx = arr.shape[1] * (1.25 - 1.6 * u)
-    band = np.clip(1 - np.abs(xx - gx) / 46, 0, 1) ** 1.5
-    arr += (gold * band * 120)[:, :, None]
-    big = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
-    bw, bh = big.size
-    m = rrect_mask(bw, bh, 26).filter(ImageFilter.GaussianBlur(9))
-    frame.paste(big, (int((x0 + x1) / 2 - bw / 2), int((y0 + y1) / 2 - bh / 2)), m)
-
-
-# ============================================================ end card: CTA, then studio + socials slate
-ICON_PX = 92
-ICONS = {n: Image.open(f'{SP}/icons/{n}.png').convert('RGBA').resize((ICON_PX, ICON_PX), Image.LANCZOS)
-         for n in ('instagram', 'facebook', 'tiktok')}
 _cache = {}
 
 
-def bottom_gradient():
-    if 'grad' not in _cache:
-        ys = np.arange(H, dtype=np.float32)
-        a = np.clip((ys - 860) / (1920 - 860), 0, 1) ** 1.15 * 0.80
-        _cache['grad'] = Image.fromarray((a * 255).astype(np.uint8)[:, None].repeat(W, 1))
-    return _cache['grad']
+# ============================================================ v5 source-space effects (follow the camera)
+BANNER_SRC = (214, 284, 498, 356)     # "אתם כן." gold stroke, clip 5 source px
+LOGO_SRC = (100, 8, 612, 238)         # AI NATI STUDIOS logo, clip 5 source px
 
 
-def logo_mask():
-    if 'logo' not in _cache:
-        m = Image.new('L', (W, H), 0)
-        ImageDraw.Draw(m).rounded_rectangle((160, 24, 920, 332), 50, fill=255)
-        _cache['logo'] = m.filter(ImageFilter.GaussianBlur(12))
-    return _cache['logo']
+def gold_glint(region, u, strength=120, width=40):
+    arr = np.array(region).astype(np.float32)
+    gold = ((arr[:, :, 0] > 165) & (arr[:, :, 1] > 110) & (arr[:, :, 2] < 140)).astype(np.float32)
+    xx = np.arange(arr.shape[1])[None, :] + 0.45 * np.arange(arr.shape[0])[:, None]
+    gx = arr.shape[1] * (1.3 - 1.7 * u)
+    band = np.clip(1 - np.abs(xx - gx) / width, 0, 1) ** 1.5
+    arr += (gold * band * strength)[:, :, None]
+    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
 
 
-def handle_sprite(handle):
-    key = ('h', handle)
+def v5_source_fx(img, t):
+    if PULSE0 <= t < PULSE1:
+        u = (t - PULSE0) / (PULSE1 - PULSE0)
+        s = 1 + 0.12 * math.sin(math.pi * u) ** 1.5
+        x0, y0, x1, y1 = BANNER_SRC
+        reg = gold_glint(img.crop(BANNER_SRC), u)
+        w, h = reg.size
+        big = reg.resize((int(w * s), int(h * s)), Image.LANCZOS)
+        m = rrect_mask(big.width, big.height, 18).filter(ImageFilter.GaussianBlur(6))
+        img = img.copy()
+        img.paste(big, (int((x0 + x1) / 2 - big.width / 2), int((y0 + y1) / 2 - big.height / 2)), m)
+    if NAME_T <= t < NAME_T + 0.7:
+        u = (t - NAME_T) / 0.7
+        img = img.copy()
+        img.paste(gold_glint(img.crop(LOGO_SRC), u, 130, 55), LOGO_SRC[:2])
+    return img
+
+
+# ============================================================ golden swirl transition (in the language of clip 4's magic)
+SWIRL_C = (545, 905)                  # crossing point: her chest, under the matched face
+SWIRL_A = 560                         # lobe reach left and right of her
+
+
+def lemniscate(u, phase):
+    th = u * 2 * math.pi + phase
+    d = 1 + math.sin(th) ** 2
+    x = SWIRL_A * math.cos(th) / d
+    y = SWIRL_A * 0.62 * math.sin(th) * math.cos(th) / d
+    # slight tilt and perspective so it reads as wrapping around her
+    return SWIRL_C[0] + x, SWIRL_C[1] + y - 0.10 * x
+
+
+def swirl_overlay(frame, t):
+    if not (SWIRL[0] <= t < SWIRL[1]):
+        return frame
+    if t < CUT_E - 0.05:
+        e = smooth((t - SWIRL[0]) / (CUT_E - 0.05 - SWIRL[0]))
+    elif t < CUT_E + 0.08:
+        e = 1.0
+    else:
+        e = 1 - smooth((t - CUT_E - 0.08) / (SWIRL[1] - CUT_E - 0.08))
+    u_t = (t - SWIRL[0]) / (SWIRL[1] - SWIRL[0])
+    core = Image.new('L', (W, H), 0)
+    cd = ImageDraw.Draw(core)
+    head = 0.25 + 1.35 * u_t                       # the ribbons keep travelling round the loop
+    length = 0.80 * e + 0.08
+    for strand, (ph, width, off) in enumerate(((0.0, 12, 0), (0.22, 8, 16), (0.45, 6, -14), (0.68, 5, 26), (0.9, 4, -24))):
+        pts = []
+        for k in range(90):
+            uu = head - length * (k / 89)
+            x, y = lemniscate(uu, ph)
+            pts.append((x, y + off))
+        for k in range(len(pts) - 1):
+            taper = 1 - k / (len(pts) - 1)
+            wdt = max(1, int(width * (0.35 + 0.65 * taper)))
+            cd.line((pts[k], pts[k + 1]), fill=int(255 * taper), width=wdt)
+    # sparkles shed along the ribbon
+    rng = np.random.default_rng(int(t * 1000))
+    for _ in range(int(230 * e)):
+        uu = head - length * rng.uniform(0, 1)
+        x, y = lemniscate(uu, rng.uniform(0, 0.7))
+        x += rng.normal(0, 18); y += rng.normal(0, 18)
+        r = rng.uniform(1, 3.2)
+        cd.ellipse((x - r, y - r, x + r, y + r), fill=int(rng.uniform(120, 255)))
+    c = np.array(core).astype(np.float32) / 255
+    g1 = np.array(core.filter(ImageFilter.GaussianBlur(6))).astype(np.float32) / 255
+    g2 = np.array(core.filter(ImageFilter.GaussianBlur(22))).astype(np.float32) / 255
+    light = (c[:, :, None] * np.array([255, 246, 214]) + g1[:, :, None] * np.array([255, 205, 95]) * 1.7
+             + g2[:, :, None] * np.array([255, 150, 40]) * 2.4) * e
+    a = np.array(frame).astype(np.float32)
+    res = 255 - (255 - a) * (255 - np.clip(light, 0, 255)) / 255       # screen: light only adds, no white-out
+    return Image.fromarray(np.clip(res, 0, 255).astype(np.uint8))
+
+
+# ============================================================ end card in the cinematic world
+F_CTA1 = FONT('rubik-800', 84)
+F_CTA2 = FONT('rubik-800', 72)
+F_STUDIO = FONT('heebo-700', 60)
+F_SERV2 = FONT('heebo-700', 42)
+F_HANDLE = FONT('heebo-700', 64)
+
+CTA1_Y, CTA2_Y = 1076, 1180
+COMPACT_Y = 978
+STUDIO_Y = 1052
+SERV2_Y = 1120
+SOC_Y = [1212, 1334, 1456]
+BADGE = 114
+
+GLYPHS = {n: Image.open(f'{SP}/icons/{n}.png').convert('RGBA') for n in ('instagram', 'facebook', 'tiktok')}
+
+
+def text_layer(text, font, fill=(255, 255, 255), contour=6, direction='rtl'):
+    key = ('tl', text, font.path, font.size, fill, contour, direction)
     if key in _cache:
         return _cache[key]
-    hw = int(tlen(handle, F_SOC, 'ltr'))
-    asc, desc = F_SOC.getmetrics()
-    row = Image.new('RGBA', (hw + 60, asc + desc + 60), (0, 0, 0, 0))
-    c = (30, row.height // 2)
-    sh = Image.new('L', row.size, 0)
-    ImageDraw.Draw(sh).text(c, handle, font=F_SOC, fill=255, anchor='lm', stroke_width=6, stroke_fill=255)
-    row.paste(Image.new('RGBA', row.size, (0, 0, 0, 255)), (0, 5), sh.filter(ImageFilter.GaussianBlur(9)).point(lambda v: int(v * 0.5)))
-    ImageDraw.Draw(row).text(c, handle, font=F_SOC, fill=(255, 255, 255, 255), anchor='lm', stroke_width=4,
-                             stroke_fill=CONTOUR + (255,))
-    _cache[key] = (row, hw)
+    tw = int(tlen(text, font, direction)); asc, desc = font.getmetrics()
+    M = 34
+    im = Image.new('RGBA', (tw + 2 * M, asc + desc + 2 * M), (0, 0, 0, 0))
+    c = (M + tw // 2, M + (asc + desc) // 2)
+    sh = Image.new('L', im.size, 0)
+    ImageDraw.Draw(sh).text(c, text, font=font, fill=255, anchor='mm', direction=direction, stroke_width=contour + 3, stroke_fill=255)
+    im.paste(Image.new('RGBA', im.size, (0, 0, 0, 255)), (0, 6), sh.filter(ImageFilter.GaussianBlur(10)).point(lambda v: int(v * 0.55)))
+    ImageDraw.Draw(im).text(c, text, font=font, fill=fill + (255,), anchor='mm', direction=direction,
+                            stroke_width=contour, stroke_fill=CONTOUR + (255,))
+    _cache[key] = (im, tw)
     return _cache[key]
 
 
-HEAD_Y, LINE2_Y = 1078, 1190
-SERV_Y = 760
-SOC_Y0, SOC_DY = 905, 142
+def line2_layer():
+    if 'l2' in _cache:
+        return _cache['l2']
+    parts = [text_layer(w, F_CTA2, GOLD if c else (255, 255, 255)) for w, c in CTA_LINE2]
+    gap = 22
+    tw = sum(v for _, v in parts) + gap * (len(parts) - 1)
+    M = 34
+    H2 = max(p.height for p, _ in parts)
+    im = Image.new('RGBA', (tw + 2 * M, H2), (0, 0, 0, 0))
+    x = M + tw
+    for p, v in parts:
+        im.alpha_composite(p, (int(x - v - M), (H2 - p.height) // 2))
+        x -= v + gap
+    _cache['l2'] = (im, tw)
+    return _cache['l2']
+
+
+def wipe_reveal(spr, u, band=True):
+    """Light writes the line from right to left (Hebrew reading direction)."""
+    if u >= 1:
+        return spr
+    w, h = spr.size
+    edge = w * (1 - u)
+    xs = np.arange(w, dtype=np.float32)
+    ramp = np.clip((xs - edge) / 36 + 0.5, 0, 1)
+    a = np.array(spr.getchannel('A')).astype(np.float32) * ramp[None, :]
+    out = spr.copy()
+    out.putalpha(Image.fromarray(a.astype(np.uint8)))
+    if band and u > 0:
+        glow = np.clip(1 - np.abs(xs - edge) / 26, 0, 1)[None, :] * (np.array(spr.getchannel('A')).astype(np.float32) / 255)
+        g = Image.new('RGBA', (w, h), GOLD + (0,))
+        g.putalpha(Image.fromarray((glow * 230).astype(np.uint8)))
+        out.alpha_composite(g)
+    return out
+
+
+def studio_layer(spacing):
+    key = ('studio', round(spacing, 1))
+    if key in _cache:
+        return _cache[key]
+    widths = [ImageDraw.Draw(Image.new('L', (1, 1))).textlength(ch, font=F_STUDIO) for ch in STUDIO]
+    tw = int(sum(widths) + spacing * (len(STUDIO) - 1))
+    asc, desc = F_STUDIO.getmetrics()
+    M = 30
+    size = (tw + 2 * M, asc + desc + 2 * M)
+    mask = Image.new('L', size, 0)
+    md = ImageDraw.Draw(mask)
+    stroke = Image.new('L', size, 0)
+    sd = ImageDraw.Draw(stroke)
+    x = M
+    for ch, wch in zip(STUDIO, widths):
+        md.text((x, M), ch, font=F_STUDIO, fill=255)
+        sd.text((x, M), ch, font=F_STUDIO, fill=255, stroke_width=5, stroke_fill=255)
+        x += wch + spacing
+    grad = np.zeros((size[1], size[0], 3), np.float32)
+    ys = np.linspace(0, 1, size[1])[:, None]
+    top, bot = np.array([255, 238, 168], np.float32), np.array([222, 148, 38], np.float32)
+    grad = (top[None, None, :] * (1 - ys[:, :, None]) + bot[None, None, :] * ys[:, :, None]).repeat(size[0], 1)
+    im = Image.new('RGBA', size, (0, 0, 0, 0))
+    im.paste(Image.new('RGBA', size, (0, 0, 0, 255)), (0, 5), stroke.filter(ImageFilter.GaussianBlur(9)).point(lambda v: int(v * 0.5)))
+    im.paste(Image.new('RGBA', size, CONTOUR + (255,)), (0, 0), stroke)
+    gold = Image.fromarray(grad.astype(np.uint8)).convert('RGBA')
+    im.paste(gold, (0, 0), mask)
+    _cache[key] = (im, tw)
+    return _cache[key]
+
+
+def badge(icon):
+    if ('badge', icon) in _cache:
+        return _cache[('badge', icon)]
+    S = BADGE * 2                     # draw at 2x, downsample for clean edges
+    im = Image.new('RGBA', (S, S), (0, 0, 0, 0))
+    circle = Image.new('L', (S, S), 0)
+    ImageDraw.Draw(circle).ellipse((2, 2, S - 3, S - 3), fill=255)
+    if icon == 'instagram':
+        yy, xx = np.mgrid[0:S, 0:S].astype(np.float32) / S
+        u = np.clip((xx + (1 - yy)) / 2, 0, 1)
+        stops = [(0.0, (254, 218, 117)), (0.3, (250, 126, 30)), (0.55, (214, 41, 118)), (0.8, (150, 47, 191)), (1.0, (79, 91, 213))]
+        rgb = np.zeros((S, S, 3), np.float32)
+        for (a, ca), (b, cb) in zip(stops, stops[1:]):
+            m = (u >= a) & (u <= b)
+            k = ((u - a) / (b - a))[..., None]
+            rgb = np.where(m[..., None], np.array(ca) * (1 - k) + np.array(cb) * k, rgb)
+        im.paste(Image.fromarray(rgb.astype(np.uint8)), (0, 0), circle)
+        g = GLYPHS['instagram'].resize((int(S * 0.56), int(S * 0.56)), Image.LANCZOS)
+        im.alpha_composite(g, ((S - g.width) // 2, (S - g.height) // 2))
+    elif icon == 'facebook':
+        disc = Image.new('L', (S, S), 0)
+        ImageDraw.Draw(disc).ellipse((10, 10, S - 11, S - 11), fill=255)
+        im.paste(Image.new('RGBA', (S, S), (255, 255, 255, 255)), (0, 0), disc)
+        g = GLYPHS['facebook'].resize((S, S), Image.LANCZOS)
+        blue = Image.new('RGBA', (S, S), (24, 119, 242, 255))
+        im.paste(blue, (0, 0), g.getchannel('A'))
+    else:
+        im.paste(Image.new('RGBA', (S, S), (18, 16, 22, 255)), (0, 0), circle)
+        g = GLYPHS['tiktok'].resize((int(S * 0.54), int(S * 0.54)), Image.LANCZOS)
+        ox, oy = (S - g.width) // 2, (S - g.height) // 2
+        for col, dx, dy in (((37, 244, 238), -5, -4), ((254, 44, 85), 5, 4), ((255, 255, 255), 0, 0)):
+            layer = Image.new('RGBA', g.size, col + (255,))
+            layer.putalpha(g.getchannel('A'))
+            im.alpha_composite(layer, (ox + dx, oy + dy))
+    ring = Image.new('L', (S, S), 0)
+    ImageDraw.Draw(ring).ellipse((2, 2, S - 3, S - 3), outline=255, width=5)
+    im.paste(Image.new('RGBA', (S, S), (255, 255, 255, 200)), (0, 0), ring)
+    sh = Image.new('RGBA', (S + 60, S + 60), (0, 0, 0, 0))
+    shm = Image.new('L', sh.size, 0)
+    ImageDraw.Draw(shm).ellipse((30, 40, 30 + S, 40 + S), fill=150)
+    sh.paste(Image.new('RGBA', sh.size, (0, 0, 0, 255)), (0, 0), shm.filter(ImageFilter.GaussianBlur(12)))
+    sh.alpha_composite(im, (30, 30))
+    out = sh.resize((sh.width // 2, sh.height // 2), Image.LANCZOS)
+    _cache[('badge', icon)] = out
+    return out
+
+
+BRAND_COL = {'instagram': (225, 48, 108), 'facebook': (24, 119, 242), 'tiktok': (37, 244, 238)}
+
+
+def soft_dot(r):
+    key = ('dot', r)
+    if key not in _cache:
+        S = r * 6
+        m = Image.new('L', (S, S), 0)
+        ImageDraw.Draw(m).ellipse((S / 2 - r, S / 2 - r, S / 2 + r, S / 2 + r), fill=255)
+        m = m.filter(ImageFilter.GaussianBlur(r * 0.9))
+        _cache[key] = m
+    return _cache[key]
+
+
+_rng = np.random.default_rng(21)
+PARTICLES = [dict(x=_rng.uniform(40, 1040), y=_rng.uniform(600, 1950), v=_rng.uniform(28, 75),
+                  r=int(_rng.integers(2, 7)), a=_rng.uniform(0.25, 0.75), ph=_rng.uniform(0, 6.28),
+                  sw=_rng.uniform(8, 22)) for _ in range(54)]
+
+
+def warm_light(frame, t):
+    """Golden ambience for the end card: a warm glow behind the text and drifting gold dust."""
+    k = smooth((t - (CTA1_T - 0.2)) / 0.6)
+    if k <= 0:
+        return frame
+    bump = 0.0
+    if t >= FINAL_HIT - 0.05:
+        bump = math.exp(-(t - FINAL_HIT) * 2.2) * 0.9 if t >= FINAL_HIT else 0
+    if 'glow' not in _cache:
+        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+        g = np.exp(-(((xx - 540) / 560) ** 2 + ((yy - 1250) / 420) ** 2))
+        _cache['glow'] = g
+    g = _cache['glow'] * (0.16 * k + 0.22 * bump)
+    light = g[:, :, None] * np.array([255, 182, 78], np.float32)
+    dust = Image.new('L', (W, H), 0)
+    for p in PARTICLES:
+        age = t - (CTA1_T - 0.2)
+        y = p['y'] - p['v'] * age
+        y = (y - 600) % 1400 + 600
+        x = p['x'] + p['sw'] * math.sin(age * 1.3 + p['ph'])
+        tw = 0.6 + 0.4 * math.sin(age * 5 + p['ph'] * 3)
+        d = soft_dot(p['r'])
+        dust.paste(Image.new('L', d.size, int(255 * p['a'] * tw * k)), (int(x - d.width / 2), int(y - d.height / 2)), d)
+    dn = np.array(dust).astype(np.float32)[:, :, None] / 255 * np.array([255, 214, 130], np.float32)
+    light = light + dn * (1 + bump)
+    a = np.array(frame).astype(np.float32)
+    res = 255 - (255 - a) * (255 - np.clip(light, 0, 255)) / 255
+    return Image.fromarray(np.clip(res, 0, 255).astype(np.uint8))
+
+
+def fingertip_out(t):
+    rect, _ = camera_rect('s5', 'v5', t)
+    x0, y0, cw, ch = rect
+    return (333 - x0) * W / cw, (640 - y0) * H / ch
+
+
+def draw_comet(frame, t):
+    if not (FINGER_T <= t < CTA1_T + 0.05):
+        return
+    u = ease_in_out((t - FINGER_T) / (CTA1_T - FINGER_T))
+    sx, sy = fingertip_out(t)
+    l1, w1 = text_layer(CTA_LINE1, F_CTA1)
+    ex, ey = W / 2 + w1 / 2, CTA1_Y
+    layer = Image.new('L', (W, H), 0)
+    d = ImageDraw.Draw(layer)
+    for k in range(14):
+        v = max(0.0, u - k * 0.035)
+        px, py = sx + (ex - sx) * v, sy + (ey - sy) * v - 60 * math.sin(math.pi * v)
+        r = 13 - k * 0.8
+        if r > 1:
+            d.ellipse((px - r, py - r, px + r, py + r), fill=int(255 * (1 - k / 14)))
+    glow = layer.filter(ImageFilter.GaussianBlur(10))
+    light = np.array(ImageChops.add(layer, glow)).astype(np.float32)[:, :, None] / 255 * np.array([255, 214, 120], np.float32)
+    a = np.array(frame).astype(np.float32)
+    frame.paste(Image.fromarray(np.clip(255 - (255 - a) * (255 - light) / 255, 0, 255).astype(np.uint8)))
 
 
 def draw_end(frame, t):
-    if t < CTA_IN - 0.1:
+    if t < CUT_E:
         return frame
-    # --- slate background: blur and dim everything except the studio logo
-    if t >= SLATE_T:
-        u = smooth((t - SLATE_T) / 0.45)
-        blurred = frame.filter(ImageFilter.GaussianBlur(2 + 16 * u))
-        dim = Image.blend(blurred, Image.new('RGB', (W, H), (8, 6, 12)), 0.68 * u)
-        frame = Image.composite(frame, dim, logo_mask())
-    else:
-        ga = smooth((t - CTA_IN + 0.1) / 0.35)
-        frame.paste(Image.new('RGB', (W, H), (7, 5, 12)), (0, 0), bottom_gradient().point(lambda v: int(v * ga)))
-
-    # --- CTA: two lines, leaves when the slate opens
-    cta_a = 1.0 if t < SLATE_T else 1 - smooth((t - SLATE_T) / 0.25)
-    if cta_a > 0:
-        items = [word_sprite(w, F_HEAD) for w, _ in CTA_HEAD]
-        for (spr, vis), cx, (_, dt) in zip(items, layout_line(items, W / 2, 26), CTA_HEAD):
-            animate_word(frame, spr, cx, HEAD_Y - 30 * (1 - cta_a), t, CTA_IN + dt, cta_a)
-        last = len(CTA_LINE2) - 1
-        items = [word_sprite(w, F_LINE2_HL, GOLD) if i == last else word_sprite(w, F_LINE2) for i, (w, _) in enumerate(CTA_LINE2)]
-        for i, ((spr, vis), cx, (_, dt)) in enumerate(zip(items, layout_line(items, W / 2, 22), CTA_LINE2)):
-            animate_word(frame, spr, cx, LINE2_Y - 30 * (1 - cta_a), t, CTA_IN + dt, cta_a, key=(i == last))
-
-    # --- slate: services, then the three networks with big icons
-    if t >= SLATE_T + 0.05:
-        u = ease_out_cubic((t - SLATE_T - 0.05) / 0.3)
-        parts = [word_sprite(s, F_SERV) for s in SERVICES]
-        sep_w = 40
-        total = sum(v for _, v in parts) + sep_w * (len(parts) - 1)
-        x = W / 2 + total / 2
-        y = SERV_Y + 18 * (1 - u)
-        for i, (spr, vis) in enumerate(parts):
-            place_sprite(frame, spr, x - vis / 2, y, 1.0, u)
-            x -= vis
-            if i < len(parts) - 1:
-                bar = Image.new('RGBA', (5, 42), GOLD + (int(255 * u),))
-                frame.paste(bar, (int(x - sep_w / 2 - 2), int(y - 21)), bar)
-                x -= sep_w
-        widest = max(handle_sprite(h)[1] for _, h in SOCIALS)
-        bx = int(W / 2 - (ICON_PX + 30 + widest) / 2)
-        for i, (icon, handle) in enumerate(SOCIALS):
-            tin = SOC_T0 + i * SOC_STAGGER
-            if t < tin:
+    frame = warm_light(frame, t)
+    draw_comet(frame, t)
+    # --- the call to action, written by light, then tucked up as one compact line
+    l1, w1 = text_layer(CTA_LINE1, F_CTA1)
+    l2, w2 = line2_layer()
+    if t >= CTA1_T:
+        mu = ease_in_out((t - COMPACT_T) / 0.38) if t >= COMPACT_T else 0.0
+        s_c = 860 / (w1 + w2 + 28)
+        total = s_c * (w1 + w2) + 28
+        c1 = (W / 2 + total / 2 - s_c * w1 / 2, COMPACT_Y)
+        c2 = (W / 2 - total / 2 + s_c * w2 / 2, COMPACT_Y + 3)
+        for spr, tw0, pos_big, pos_c, t0 in ((l1, w1, (W / 2, CTA1_Y), c1, CTA1_T), (l2, w2, (W / 2, CTA2_Y), c2, CTA2_T)):
+            if t < t0:
                 continue
-            p = clamp((t - tin) / 0.25)
-            uu = ease_out_cubic(p)
-            yy = SOC_Y0 + i * SOC_DY
-            dx = int(-34 * (1 - uu))
-            place_sprite(frame, ICONS[icon], bx + ICON_PX / 2 + dx, yy, 0.7 + 0.3 * ease_out_back(p, 2.2), uu)
-            row, hw = handle_sprite(handle)
-            row = with_alpha(row, uu)
-            frame.paste(row, (bx + ICON_PX + 30 - 30 + dx, int(yy - row.height / 2)), row)
+            u = clamp((t - t0) / 0.36)
+            img = wipe_reveal(spr, ease_out_cubic(u))
+            sc = 1 + (s_c - 1) * mu
+            cx = pos_big[0] + (pos_c[0] - pos_big[0]) * mu
+            cy = pos_big[1] + (pos_c[1] - pos_big[1]) * mu
+            place_sprite(frame, img, cx, cy, sc, 1.0)
+    # --- studio name: tracked gold letters settle in on the downbeat, the logo above glints
+    if t >= NAME_T:
+        p = clamp((t - NAME_T) / 0.45)
+        spr, tw = studio_layer(8 + 26 * (1 - ease_out_cubic(p)))
+        place_sprite(frame, spr, W / 2, STUDIO_Y, 1.0, smooth(p * 1.4))
+    # --- services
+    if t >= SERV_T:
+        parts = [text_layer(s, F_SERV2) for s in SERVICES]
+        sep = 44
+        total = sum(v for _, v in parts) + sep * (len(parts) - 1)
+        x = W / 2 + total / 2
+        for i, (spr, v) in enumerate(parts):
+            p = clamp((t - SERV_T - i * 0.07) / 0.28)
+            if p > 0:
+                place_sprite(frame, spr, x - v / 2, SERV2_Y + 16 * (1 - ease_out_cubic(p)), 1.0, smooth(p * 1.5))
+            x -= v
+            if i < len(parts) - 1:
+                pb = clamp((t - SERV_T - i * 0.07 - 0.1) / 0.2)
+                if pb > 0:
+                    bar = Image.new('RGBA', (5, 44), GOLD + (int(255 * pb),))
+                    frame.paste(bar, (int(x - sep / 2 - 2), int(SERV2_Y - 22)), bar)
+                x -= sep
+    # --- networks: colour badges pop in on the beat, a ring bursts, the handle slides in
+    widest = max(text_layer(h, F_HANDLE, contour=5, direction='ltr')[1] for _, h in SOCIALS)
+    block = BADGE + 28 + widest
+    bx = W / 2 - block / 2
+    beat_phase = None
+    for i, ((icon, handle), tin) in enumerate(zip(SOCIALS, SOC_TIMES)):
+        if t < tin:
+            continue
+        y = SOC_Y[i]
+        p = clamp((t - tin) / 0.30)
+        sc = ease_out_back(p, 2.6)
+        # gentle breathing on every later beat keeps the card in time with the music
+        since = t - tin
+        if since > 0.5:
+            ph = ((t - MUSIC_FINALE_START - LOOP_E) % 0.5) / 0.5
+            sc *= 1 + 0.045 * math.exp(-ph * 6)
+        b = badge(icon)
+        place_sprite(frame, b, bx + BADGE / 2, y, max(0.01, sc), smooth(p * 2), rot=-28 * (1 - ease_out_cubic(p)))
+        rp = clamp((t - tin) / 0.42)
+        if 0 < rp < 1:
+            r = BADGE / 2 + 46 * ease_out_cubic(rp)
+            ring = Image.new('RGBA', (int(2 * r + 12), int(2 * r + 12)), (0, 0, 0, 0))
+            ImageDraw.Draw(ring).ellipse((6, 6, 6 + 2 * r, 6 + 2 * r), outline=BRAND_COL[icon] + (int(230 * (1 - rp)),),
+                                         width=max(1, int(7 * (1 - rp))))
+            frame.paste(ring, (int(bx + BADGE / 2 - ring.width / 2), int(y - ring.height / 2)), ring)
+        ph = clamp((t - tin - 0.06) / 0.28)
+        if ph > 0:
+            spr, hw = text_layer(handle, F_HANDLE, contour=5, direction='ltr')
+            dx = -40 * (1 - ease_out_cubic(ph))
+            place_sprite(frame, spr, bx + BADGE + 28 + hw / 2 + dx, y, 1.0, smooth(ph * 1.6))
     return frame
 
 
@@ -801,6 +1078,8 @@ def segment_frames(keep=None):
 
 def render_frame(k, clip, cam, src):
     t = k / FPS
+    if clip == 'v5':
+        src = v5_source_fx(src, t)
     rect, shake = camera_rect(cam, clip, t)
     z = base_crop(clip)[0] / rect[2]
     if clip == 'v3' and ERASE_T <= t < S3E_T:
@@ -808,14 +1087,8 @@ def render_frame(k, clip, cam, src):
     else:
         fr = crop_resize(src, clip, rect, shake)
     fr = finish(fr, z)
-    if clip == 'v5' and t >= SLATE_T:
-        # gentle push on the slate background
-        s = 1 + 0.03 * smooth((t - SLATE_T) / (END_T - SLATE_T))
-        if s > 1.001:
-            cw, ch = W / s, H / s
-            fr = fr.resize((W, H), Image.BILINEAR, box=((W - cw) / 2, (H - ch) / 2, (W + cw) / 2, (H + ch) / 2))
     fr = pixel_transition(fr, t)
-    banner_pulse(fr, t)
+    fr = swirl_overlay(fr, t)
     fr = draw_end(fr, t)
     draw_prompts(fr, t)
     draw_dialogue(fr, t)

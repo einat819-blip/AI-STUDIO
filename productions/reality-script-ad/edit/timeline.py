@@ -81,29 +81,50 @@ PIX_SWAP = 0.17              # ... blocks of the new reality switch in, laptop f
 PIX_IN = 0.17                # ... and clip 4 sharpens just before the snap
 CUT_D = f30(S3E_T + (V3_OUT - V3_AFTER))
 
-# ------------------------------------------------------------------ S4 snap and reveal
+# ------------------------------------------------------------------ S4 snap and reveal (visuals unchanged)
 V4_REVEAL = 3.40             # the castle world opens up
-V4_OUT = 3.90                # shortened: no lingering once the world is revealed
 SNAP_T = CUT_D + 0.35
 IMPACT_T = CUT_D + V4_REVEAL
-CUT_E = f30(CUT_D + V4_OUT)
-MUSIC_FINALE_START = IMPACT_T - 3.93     # finale cue: impact at 3.93 s, final hit at 11.85 s
-FINAL_HIT = MUSIC_FINALE_START + 11.85
 
-# ------------------------------------------------------------------ S5 end card
-X = CUT_E
-VO_SLOT = ("vo", X + 1.62, X + 4.42)     # "אצלנו המציאות לא קובעת את התסריט. אתם כן."
-PULSE0, PULSE1 = X + 3.92, X + 4.42      # "אתם כן" pulse
-CTA_IN = X + 4.52
-SLATE_T = f30(FINAL_HIT - 0.50)          # slate opens, the last network row lands on the final hit
-SLATE_HOLD = 4.0                         # contact details fully on screen at least this long
-SOC_T0 = SLATE_T + 0.20
-SOC_STAGGER = 0.15
-END_T = f30(SOC_T0 + 2 * SOC_STAGGER + 0.25 + SLATE_HOLD)
+# ------------------------------------------------------------------ ending (v4)
+# Her line lands as a reaction to the new world, the tagline voice-over bridges into the
+# golden-light transition, and "אתם כן" falls on her pointing at the lens, which sets off
+# the reveal of the studio details.
+D5_T = IMPACT_T + 0.30
+VO1 = (IMPACT_T + 1.80, IMPACT_T + 3.70)        # "אצלנו המציאות לא קובעת את התסריט."
+CUT_E = f30(IMPACT_T + 3.90)                      # transformation -> branded scene (matched face)
+V4_OUT = CUT_E - CUT_D
+SWIRL = (CUT_E - 0.42, CUT_E + 0.48)              # the animation's own golden swirl carries the cut
+VO2 = (CUT_E + 0.05, CUT_E + 0.55)                # "אתם כן." on her pointing
+VO_SLOT = ("vo", VO1[0], VO2[1])
+PULSE0, PULSE1 = VO2
+PULLBACK = (CUT_E + 0.05, CUT_E + 0.85)           # out of the matched close-up to the full stage
+FINGER_T = CUT_E + 0.30                           # golden light leaves her fingertip
+CTA1_T = CUT_E + 0.45
+CTA2_T = CUT_E + 0.95                             # her wink
+
+# music: finale cue with one 4-bar loop inserted so it keeps building to the last frame
+MUSIC_FINALE_START = IMPACT_T - 3.93              # cue impact at 3.93 s
+LOOP_S, LOOP_E = 5.03, 9.03                       # cue time: play to LOOP_E, jump back to LOOP_S
+LOOP_LEN = LOOP_E - LOOP_S
+FINAL_HIT = MUSIC_FINALE_START + 11.96 + LOOP_LEN
+
+
+def music_beat(k):
+    """Edit time of the k-th downbeat after the loop jump (k=0 is the jump itself)."""
+    return MUSIC_FINALE_START + LOOP_E + k
+
+
+COMPACT_T = music_beat(1)                         # CTA tucks up, the studio name arrives
+NAME_T = music_beat(1)
+SERV_T = music_beat(1) + 0.50
+SOC_TIMES = [music_beat(2), music_beat(2) + 0.50, music_beat(3)]
+END_T = f30(FINAL_HIT + 0.45)
 TOTAL_FRAMES = int(round(END_T * FPS))
 
-CTA_HEAD = [("יש", 0.00), ("לכם", 0.09), ("רעיון", 0.18), ("לסרט?", 0.29)]
-CTA_LINE2 = [("בואו", 0.50), ("נהפוך", 0.59), ("אותו", 0.68), ("למציאות.", 0.82)]
+CTA_LINE1 = "יש לכם רעיון לסרט?"
+CTA_LINE2 = [("בואו", None), ("נהפוך", None), ("אותו", None), ("למציאות.", "gold")]
+STUDIO = "AI NATI STUDIOS"
 SERVICES = ["סרטים אישיים", "פרסומות", "הזמנות לאירועים"]
 SOCIALS = [("instagram", "@ainati_studios"), ("facebook", "AI NATI STUDIOS"), ("tiktok", "@einat.cohen.elyas")]
 
@@ -118,7 +139,7 @@ DIALOGUE = [
     ("d4", [[("טוב,", None, S3E_T + 0.10), ("מספיק!", None, S3E_T + 0.33)],
             [("תן", None, S3E_T + 0.80), ("לי", None, S3E_T + 0.93), ("לכתוב", None, S3E_T + 1.08),
              ("את", None, S3E_T + 1.35), ("התסריט.", "gold", S3E_T + 1.50)]], CUT_D - 0.22, None),
-    ("d5", [[("עכשיו", None, X + 0.15), ("אנחנו", None, X + 0.42), ("מדברים!", "gold", X + 0.70)]], X + 1.42, None),
+    ("d5", [[("עכשיו", None, D5_T), ("אנחנו", None, D5_T + 0.27), ("מדברים!", "gold", D5_T + 0.55)]], D5_T + 1.30, None),
 ]
 
 # ------------------------------------------------------------------ edit list
@@ -134,5 +155,5 @@ SEGMENTS = [
     ("v3", ERASE_T, S3E_T, ("hold", V3_ERASE), "s3"),
     ("v3", S3E_T, CUT_D, ("lin", V3_AFTER), "s3"),
     ("v4", CUT_D, CUT_E, ("lin", 0.0), "static"),
-    ("v5", CUT_E, END_T, ("clamp", 0.0, 8.0), "static"),
+    ("v5", CUT_E, END_T, ("clamp", 0.0, 8.0), "s5"),
 ]
