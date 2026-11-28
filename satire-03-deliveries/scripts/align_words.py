@@ -66,10 +66,10 @@ def speech_spans(x, sr, thr_db=-42.0, bridge=0.16, min_len=0.06):
 def main():
     edit = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "edit", "edit_v3.py")
     E = load_edit(edit)
-    x, sr = sf.read(os.path.join(ROOT, "source", "audio", "narration.wav"))
+    x, sr = sf.read(os.path.join(ROOT, getattr(E, "NARRATION_WAV", "source/audio/narration.wav")))
     if x.ndim == 2:
         x = x.mean(1)
-    T = json.load(open(os.path.join(ROOT, "edit", "narration_transcript.json"), encoding="utf-8"))
+    T = json.load(open(os.path.join(ROOT, getattr(E, "NARRATION_TRANSCRIPT", "edit/narration_transcript.json")), encoding="utf-8"))
     words = [w for w in T["words"] if norm(w["w"])]
     spans, db = speech_spans(x, sr)
 
@@ -120,7 +120,7 @@ def main():
 
     out = dict(source="narration.wav", transcript_model=T.get("model"), speech_spans=[[round(a, 3), round(b, 3)] for a, b in spans],
                lines=lines, chunks=chunks)
-    with open(os.path.join(ROOT, "edit", "narration_words.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(ROOT, getattr(E, "NARRATION_WORDS", "edit/narration_words.json")), "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
     for line, seg, ch in zip(E.VO, lines, chunks):
         print(f"{seg[0]['start']:6.2f}-{seg[-1]['end']:6.2f}  cut[{ch[0]:6.2f},{ch[1]:6.2f}]  {line[2]}")

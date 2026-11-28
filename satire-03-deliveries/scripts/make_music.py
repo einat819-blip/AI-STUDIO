@@ -382,6 +382,30 @@ def fanfare():
     return soft_clip(normalize(out, -2.0) * 1.1, 1.2)
 
 
+# ----------------------------------------------------------------- 4. tension (control room)
+
+def tension():
+    bpm = 128
+    beat = 60 / bpm
+    e16 = beat / 4
+    bars = 3
+    total = bars * 4 * beat + 1.0
+    out = silence(total)
+    for k in range(bars * 16):
+        t0 = k * e16
+        f = midi(nm("D2")) if (k // 16) % 2 == 0 else midi(nm("C2"))
+        n = int(e16 * 0.9 * SR)
+        x = saw(f, n) * 0.6 + square(f * 2, n, kmax=9) * 0.15
+        x = tv_lowpass(x, 300 + 1500 * np.exp(-np.arange(n) / SR / 0.03)) * env_adsr(n, 0.003, 0.03, 0.5, 0.02)
+        out = place(out, x, t0, 0.5 if k % 4 == 0 else 0.32)
+        if k % 2 == 1:
+            out = place(out, pan(hat(gain=0.6), 0.3), t0, 0.35)
+    for k in range(bars):
+        out = place(out, hp(taiko(), 40, order=2), k * 4 * beat, 0.5)
+        out = place(out, sum_strings([nm("D4"), nm("F4"), nm("A4")], 4 * beat), k * 4 * beat, 0.12 + 0.06 * k)
+    return soft_clip(normalize(reverb(out, wet=0.2, dur=1.2), -2.0) * 1.1, 1.2)
+
+
 if __name__ == "__main__":
     cues = {}
     j, cues["jingle_commercial"] = jingle()
@@ -393,5 +417,8 @@ if __name__ == "__main__":
     f = fanfare()
     write(os.path.join(OUT, "fanfare_victory.wav"), fade(f, 0.0, 0.8), peak_db=-1.0)
     print("fanfare", round(len(f) / SR, 2))
+    tz = tension()
+    write(os.path.join(OUT, "tension_control_room.wav"), fade(tz, 0.0, 0.5), peak_db=-1.0)
+    print("tension", round(len(tz) / SR, 2))
     with open(os.path.join(OUT, "cue_map.json"), "w") as fh:
         json.dump(cues, fh, indent=2)

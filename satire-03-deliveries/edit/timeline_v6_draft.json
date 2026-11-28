@@ -1,0 +1,389 @@
+{
+  "total_sec": 55.467,
+  "draft": false,
+  "segments": [
+    {
+      "id": "1",
+      "shot": 1,
+      "kind": "clip",
+      "start": 0.0,
+      "dur": 3.067,
+      "src": "source/clips/S01_courier_billboard.mp4",
+      "tin": 0.0,
+      "tout": 3.0667,
+      "zoom": 1.0
+    },
+    {
+      "id": "2",
+      "shot": 2,
+      "kind": "clip",
+      "start": 3.067,
+      "dur": 1.367,
+      "src": "source/clips/S02_curly_orders_laptop.mp4",
+      "tin": 3.75,
+      "tout": 5.1167,
+      "zoom": 1.0
+    },
+    {
+      "id": "3",
+      "shot": 3,
+      "kind": "clip",
+      "start": 4.433,
+      "dur": 4.367,
+      "src": "source/clips/S03_agent_shock_eshkol.mp4",
+      "tin": 0.9,
+      "tout": 5.2667,
+      "zoom": 1.0
+    },
+    {
+      "id": "4a",
+      "shot": 4,
+      "kind": "clip",
+      "start": 8.8,
+      "dur": 1.333,
+      "src": "source/clips/S05a_agent_thumbs_up.mp4",
+      "tin": 0.0,
+      "tout": 1.3333,
+      "zoom": 1.0
+    },
+    {
+      "id": "vip",
+      "shot": 5,
+      "kind": "clip",
+      "start": 10.133,
+      "dur": 3.8,
+      "src": "source/clips/S04_vip_card.mp4",
+      "tin": 2.2,
+      "tout": 6.0,
+      "zoom": 1.0
+    },
+    {
+      "id": "5a",
+      "shot": 6,
+      "kind": "clip",
+      "start": 13.933,
+      "dur": 1.533,
+      "src": "source/clips/S05a_agent_thumbs_up.mp4",
+      "tin": 1.35,
+      "tout": 2.8833,
+      "zoom": 1.0
+    },
+    {
+      "id": "5b",
+      "shot": 7,
+      "kind": "clip",
+      "start": 15.467,
+      "dur": 0.9,
+      "src": "source/clips/S05a_agent_thumbs_up.mp4",
+      "tin": 3.2,
+      "tout": 4.1,
+      "zoom": 1.0
+    },
+    {
+      "id": "5c",
+      "shot": 8,
+      "kind": "clip",
+      "start": 16.367,
+      "dur": 1.567,
+      "src": "source/clips/S05a_agent_thumbs_up.mp4",
+      "tin": 4.37,
+      "tout": 5.9367,
+      "zoom": 1.18
+    },
+    {
+      "id": "6",
+      "shot": 9,
+      "kind": "clip",
+      "start": 17.933,
+      "dur": 4.133,
+      "src": "source/clips/S06_hero_courier_departure.mp4",
+      "tin": 0.25,
+      "tout": 4.3833,
+      "zoom": 1.26
+    },
+    {
+      "id": "7",
+      "shot": 10,
+      "kind": "clip",
+      "start": 22.067,
+      "dur": 3.667,
+      "src": "source/clips/S07_pickup_point_boxes.mp4",
+      "tin": 1.0,
+      "tout": 4.6667,
+      "zoom": 1.0
+    },
+    {
+      "id": "8",
+      "shot": 11,
+      "kind": "clip",
+      "start": 25.733,
+      "dur": 5.6,
+      "src": "source/clips/S08_courier_binoculars_map.mp4",
+      "tin": 0.25,
+      "tout": 5.85,
+      "zoom": 1.0
+    },
+    {
+      "id": "9",
+      "shot": 12,
+      "kind": "clip",
+      "start": 31.333,
+      "dur": 1.633,
+      "src": "source/clips/S09_curly_israel_flag.mp4",
+      "tin": 1.85,
+      "tout": 3.4833,
+      "zoom": 1.0
+    },
+    {
+      "id": "10",
+      "shot": 13,
+      "kind": "clip",
+      "start": 32.967,
+      "dur": 4.567,
+      "src": "source/clips/S10_agent_distribution_map.mp4",
+      "tin": 0.53,
+      "tout": 5.0967,
+      "zoom": 1.12
+    },
+    {
+      "id": "11a",
+      "shot": 14,
+      "kind": "clip",
+      "start": 37.533,
+      "dur": 1.067,
+      "src": "source/clips/S11_package_world_journey.mp4",
+      "tin": 0.0,
+      "tout": 1.0667,
+      "zoom": 1.0
+    },
+    {
+      "id": "11b",
+      "shot": 15,
+      "kind": "clip",
+      "start": 38.6,
+      "dur": 1.067,
+      "src": "source/clips/S11_package_world_journey.mp4",
+      "tin": 2.4,
+      "tout": 3.4667,
+      "zoom": 1.3
+    },
+    {
+      "id": "11c",
+      "shot": 16,
+      "kind": "clip",
+      "start": 39.667,
+      "dur": 1.133,
+      "src": "source/clips/S11_package_world_journey.mp4",
+      "tin": 3.45,
+      "tout": 4.5833,
+      "zoom": 1.28
+    },
+    {
+      "id": "11d",
+      "shot": 17,
+      "kind": "clip",
+      "start": 40.8,
+      "dur": 1.467,
+      "src": "source/clips/S11_package_world_journey.mp4",
+      "tin": 4.58,
+      "tout": 6.0467,
+      "zoom": 1.22
+    },
+    {
+      "id": "14",
+      "shot": 18,
+      "kind": "clip",
+      "start": 42.267,
+      "dur": 3.233,
+      "src": "source/clips/S14_control_room.mp4",
+      "tin": 2.7,
+      "tout": 5.9333,
+      "zoom": 1.0
+    },
+    {
+      "id": "15",
+      "shot": 19,
+      "kind": "clip",
+      "start": 45.5,
+      "dur": 4.0,
+      "src": "source/clips/S15_ceo_office.mp4",
+      "tin": 1.9,
+      "tout": 5.9,
+      "zoom": 1.42
+    },
+    {
+      "id": "13",
+      "shot": 20,
+      "kind": "clip",
+      "start": 49.5,
+      "dur": 2.367,
+      "src": "source/clips/S13_curly_uniform_billboard.mp4",
+      "tin": 0.0,
+      "tout": 2.3667,
+      "zoom": 1.38
+    },
+    {
+      "id": "end",
+      "shot": 21,
+      "kind": "endcard_v4",
+      "start": 51.867,
+      "dur": 3.6,
+      "src": null,
+      "tin": null,
+      "tout": null,
+      "zoom": 1.0
+    }
+  ],
+  "captions": [
+    {
+      "start": 0.1,
+      "end": 1.84,
+      "text": "משלוחים לכל חלקי הארץ!",
+      "shown": false
+    },
+    {
+      "start": 2.0,
+      "end": 4.26,
+      "text": "מהירים, נוחים\\Nועד פתח הבית!",
+      "shown": true
+    },
+    {
+      "start": 4.5,
+      "end": 5.85,
+      "text": "רגע... איפה אתם גרים?",
+      "shown": true
+    },
+    {
+      "start": 6.05,
+      "end": 6.71,
+      "text": "אשכול?!",
+      "shown": true
+    },
+    {
+      "start": 7.35,
+      "end": 7.62,
+      "text": "אה...",
+      "shown": true
+    },
+    {
+      "start": 7.95,
+      "end": 10.01,
+      "text": "אז אתם במסלול\\Nהמיוחד שלנו.",
+      "shown": true
+    },
+    {
+      "start": 10.3,
+      "end": 12.83,
+      "text": "מסלול פרימיום לתושבי הפריפריה.",
+      "shown": false
+    },
+    {
+      "start": 14.05,
+      "end": 15.32,
+      "text": "משלוח פעם בשבוע!",
+      "shown": true
+    },
+    {
+      "start": 15.52,
+      "end": 16.17,
+      "text": "באיזה יום?",
+      "shown": true
+    },
+    {
+      "start": 16.42,
+      "end": 17.82,
+      "text": "אנחנו לא אוהבים\\Nלהתחייב.",
+      "shown": true
+    },
+    {
+      "start": 18.3,
+      "end": 19.53,
+      "text": "משלוח עד הבית,",
+      "shown": false
+    },
+    {
+      "start": 19.8,
+      "end": 21.68,
+      "text": "בתוספת תשלום על האומץ של הנהג.",
+      "shown": false
+    },
+    {
+      "start": 22.15,
+      "end": 23.11,
+      "text": "או נקודת איסוף.",
+      "shown": false
+    },
+    {
+      "start": 23.35,
+      "end": 25.49,
+      "text": "אתם עושים את המשלוח,\\Nאנחנו גובים עליו.",
+      "shown": true
+    },
+    {
+      "start": 25.9,
+      "end": 28.87,
+      "text": "ואם כל זה לא מתאים לכם,\\Nיש לנו פתרון נוסף.",
+      "shown": true
+    },
+    {
+      "start": 29.45,
+      "end": 30.86,
+      "text": "אנחנו פשוט לא מגיעים.",
+      "shown": true
+    },
+    {
+      "start": 31.45,
+      "end": 32.67,
+      "text": "אבל אנחנו בישראל.",
+      "shown": true
+    },
+    {
+      "start": 33.05,
+      "end": 34.64,
+      "text": "מבחינה גיאוגרפית, כן.",
+      "shown": true
+    },
+    {
+      "start": 34.9,
+      "end": 37.32,
+      "text": "מבחינתנו,\\Nזה קצת יותר מורכב.",
+      "shown": true
+    },
+    {
+      "start": 37.65,
+      "end": 39.49,
+      "text": "החבילה שלכם\\Nיצאה מסין,",
+      "shown": true
+    },
+    {
+      "start": 39.69,
+      "end": 42.03,
+      "text": "חצתה אוקיינוסים\\Nוהגיעה לישראל!",
+      "shown": true
+    },
+    {
+      "start": 42.4,
+      "end": 43.86,
+      "text": "אבל מכאן לאשכול?",
+      "shown": true
+    },
+    {
+      "start": 44.15,
+      "end": 44.95,
+      "text": "בואו לא נגזים.",
+      "shown": true
+    },
+    {
+      "start": 49.6,
+      "end": 51.57,
+      "text": "משלוחים לכל חלקי הארץ!",
+      "shown": false
+    },
+    {
+      "start": 51.95,
+      "end": 53.36,
+      "text": "הפריפריה נמכרת בנפרד.",
+      "shown": false
+    }
+  ]
+}

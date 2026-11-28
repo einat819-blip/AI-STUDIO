@@ -138,6 +138,37 @@ def _billboard_patch(img, spec):
     return (img * (1 - m) + fixed * m).astype(np.uint8), full
 
 
+def _reveal_patch(img, spec, t):
+    """Text printed on a static strip (lower third) is hidden until spec["t"]
+    (segment seconds), then wiped in right to left (Hebrew reading order)."""
+    x0, y0, x1, y1 = spec["rect"]
+    tr, wd = spec["t"], spec.get("wipe", 0.3)
+    if t >= tr + wd:
+        return img
+    blk = img[y0:y1, x0:x1]
+    hsv = cv2.cvtColor(blk, cv2.COLOR_RGB2HSV)
+    text = ((hsv[..., 1] < spec.get("sat_max", 70)) & (hsv[..., 2] > spec.get("val_min", 150))).astype(np.uint8)
+    text = cv2.dilate(text, np.ones((5, 5), np.uint8))
+    clean = cv2.inpaint(np.ascontiguousarray(blk), text, 5, cv2.INPAINT_TELEA).astype(np.float32)
+    p = _ease((t - tr) / wd, "inout") if t > tr else 0.0
+    w = x1 - x0
+    edge = w * (1 - p)
+    xs = np.arange(w, dtype=np.float32)[None, :, None]
+    a = np.clip((xs - edge) / 24 + 0.5, 0, 1) if p > 0 else np.zeros((1, w, 1), np.float32)
+    img[y0:y1, x0:x1] = (clean * (1 - a) + blk.astype(np.float32) * a).astype(np.uint8)
+    return img
+
+
+def _soften_patch(img, spec):
+    """Blur and darken everything below spec["y0"] (source px) with a soft ramp,
+    so unwanted small print becomes an out-of-focus luxury vignette."""
+    h = img.shape[0]
+    y0, feather = spec["y0"], spec.get("feather", 70)
+    soft = cv2.GaussianBlur(img, (0, 0), spec.get("sigma", 16)).astype(np.float32) * spec.get("dark", 0.5)
+    ramp = np.clip((np.arange(h, dtype=np.float32) - y0) / feather, 0, 1)[:, None, None]
+    return (img.astype(np.float32) * (1 - ramp) + soft * ramp).astype(np.uint8)
+
+
 def render_clip_py(E, seg, out):
     """Frame-accurate clip render with sub-pixel animated zoom/pan (no stretching:
     one uniform scale), optional static patch, light sharpening on big upscales."""
@@ -158,7 +189,9 @@ def render_clip_py(E, seg, out):
     enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
                             "-s", f"{E.W}x{E.H}", "-r", str(E.FPS), "-i", "-", "-vf", "format=yuv420p",
                             "-c:v", "libx264", "-preset", "fast", *INTERMEDIATE_Q(E), out], stdin=subprocess.PIPE)
-    patch = seg.get("patch")
+    patches = seg.get("patches") or ([seg["patch"]] if seg.get("patch") else [])
+    lift = seg.get("lift")
+    lift_alpha = None
     last = None
     smax = 0
     for i in range(n):
@@ -166,9 +199,15 @@ def render_clip_py(E, seg, out):
         if len(buf) == sw * sh * 3:
             last = np.frombuffer(buf, np.uint8).reshape(sh, sw, 3)
         img = last
-        if patch:
-            img, _ = _billboard_patch(img.copy(), patch)
         t = i / E.FPS
+        for pt in patches:
+            kind = pt.get("kind", "billboard")
+            if kind == "billboard":
+                img, _ = _billboard_patch(img.copy(), pt)
+            elif kind == "reveal":
+                img = _reveal_patch(img.copy(), pt, t)
+            elif kind == "soften":
+                img = _soften_patch(img, pt)
         p = _ease((t - t0) / max(t1 - t0, 1e-3), ease)
         z = z0 + (z1 - z0) * p
         cx = cx0 + (cx1 - cx0) * p
@@ -183,6 +222,26 @@ def render_clip_py(E, seg, out):
         if s > 1.7:
             bl = cv2.GaussianBlur(fr, (0, 0), 1.1)
             fr = cv2.addWeighted(fr, 1.5, bl, -0.5, 0)
+        if lift:  # static graphic lifted from the source and re-placed in the safe area
+            lx0, ly0, lx1, ly1 = lift["rect"]
+            if lift_alpha is None:
+                sys.path.insert(0, os.path.dirname(__file__))
+                from overlay_lift import graphic_mask
+                lift_alpha = graphic_mask(last, lift["rect"], lift["accents"], keep_n=lift.get("keep_n"))
+                tw = int(lift["width"])
+                th = int(round((ly1 - ly0) * tw / (lx1 - lx0)))
+                la = cv2.resize(lift_alpha, (tw, th), interpolation=cv2.INTER_LINEAR)
+                sh_a = cv2.GaussianBlur(la, (0, 0), 9) * 0.45
+                tx, ty = int(lift.get("cx", E.W / 2) - tw / 2), int(lift["y"])
+            g = cv2.resize(np.ascontiguousarray(img[ly0:ly1, lx0:lx1]), (tw, th), interpolation=cv2.INTER_LANCZOS4)
+            reg = fr[ty:ty + th, tx:tx + tw].astype(np.float32)
+            so = 7
+            shadow = np.zeros_like(la)
+            shadow[so:, :] = sh_a[:-so, :]
+            reg = reg * (1 - shadow[..., None])
+            reg = reg * (1 - la[..., None]) + g.astype(np.float32) * la[..., None]
+            fr = fr.copy()
+            fr[ty:ty + th, tx:tx + tw] = np.clip(reg, 0, 255).astype(np.uint8)
         enc.stdin.write(fr.tobytes())
     dec.stdout.read()
     dec.stdout.close()
@@ -438,11 +497,16 @@ def build_captions(E, by_id, total, words_override=None):
     events = []
     cfg = getattr(E, "CAPTIONS", None)
     cols = cfg["colors"] if cfg else COL
-    shown = [l for l in lines if l["opt"].get("caption", True)]
+    shown = [l for l in lines if l["opt"].get("caption", True) and not l["opt"].get("drop")]
+    cuts = sorted(sg["start"] for sg in by_id.values())
     for k, ln in enumerate(shown):
         nxt = shown[k + 1]["start"] if k + 1 < len(shown) else total
-        cap_end = min(nxt - 0.04, ln["end"] + 0.55)
+        cap_end = min(nxt - 0.04, ln["end"] + ln["opt"].get("hold", 0.55))
         cap_end = max(cap_end, ln["start"] + 0.7)
+        if cfg and cfg.get("stop_at_cuts"):  # never carry a caption over a cut into the next shot
+            nc = next((c for c in cuts if c > ln["end"] - 0.01), None)
+            if nc is not None:
+                cap_end = min(cap_end, max(nc - 0.03, ln["end"] + 0.08))
         opt = ln["opt"]
         if opt.get("big"):
             style = "Big"
@@ -587,6 +651,8 @@ def mix_audio(E, by_id, total, narration=None, vo_spans=None, words=None):
             else:
                 x = full[:L]
         x = x.copy()
+        if "lowpass" in mopt:  # muffled, as if playing in another room
+            x = signal.sosfilt(signal.butter(4, mopt["lowpass"], fs=SR, output="sos"), x, axis=0)
         if "ramp" in mopt:  # gain build: (db_start, db_end, seconds)
             a, b, rd = mopt["ramp"]
             k = min(len(x), int(rd * SR))
@@ -618,6 +684,8 @@ def mix_audio(E, by_id, total, narration=None, vo_spans=None, words=None):
         vo = np.zeros((n, 2))
         prev_end = -1.0
         for i, (seg, off, _t, _h, opt) in enumerate(E.VO):
+            if opt.get("drop"):
+                continue
             c0, c1 = words["chunks"][i]
             w0 = words["lines"][i][0]["start"]
             t_place = at(by_id, seg, off) - (w0 - c0)
@@ -761,8 +829,8 @@ def main():
     segs, by_id, total = build_timeline(E)
 
     # narration (final version only)
-    nar_path = os.path.join(ROOT, "source", "audio", "narration.wav")
-    words_path = os.path.join(ROOT, "edit", "narration_words.json")
+    nar_path = os.path.join(ROOT, getattr(E, "NARRATION_WAV", "source/audio/narration.wav"))
+    words_path = os.path.join(ROOT, getattr(E, "NARRATION_WORDS", "edit/narration_words.json"))
     narration, words = None, None
     if os.path.exists(nar_path) and os.path.exists(words_path):
         narration = load_wav(nar_path)
@@ -771,8 +839,19 @@ def main():
 
     print(f"timeline {total:.2f}s, {len(segs)} segments, draft={draft}")
     parts = []
+    import hashlib
     for i, sg in enumerate(segs):
         out = os.path.join(BUILD, f"seg_{i:02d}_{sg['id']}.mp4")
+        # cache: skip segments whose picture recipe is unchanged since the last render
+        recipe = json.dumps({k: v for k, v in sg.items() if k not in ("start", "start_f")}, sort_keys=True, default=str)
+        recipe += json.dumps([E.W, E.H, E.FPS, getattr(E, "LOSSLESS_INTERMEDIATES", False),
+                              getattr(E, "ENDCARD_V4", None), getattr(E, "ENDCARD_REVEAL", None)], default=str)
+        key = hashlib.sha1(recipe.encode()).hexdigest()
+        keyf = out + ".key"
+        if os.path.exists(out) and os.path.exists(keyf) and open(keyf).read() == key:
+            parts.append(out)
+            print(f"  seg {sg['id']:>5}  {sg['start']:6.2f}s  {sg['dur']:5.2f}s  {sg['kind']}  (cached)")
+            continue
         if sg["kind"] == "clip":
             if getattr(E, "PY_CLIPS", False) or any(k in sg for k in ("zoom_to", "cx_to", "cy_to", "patch")):
                 render_clip_py(E, sg, out)
@@ -784,6 +863,7 @@ def main():
             render_endcard_v4(E, sg, out)
         else:
             render_endcard(E, sg, out)
+        open(keyf, "w").write(key)
         parts.append(out)
         print(f"  seg {sg['id']:>5}  {sg['start']:6.2f}s  {sg['dur']:5.2f}s  {sg['kind']}"
               + (f"  scale x{sg.get('scale')}" if sg['kind'] == 'clip' else ""))
@@ -804,9 +884,10 @@ def main():
             s_, ms = divmod(ms, 1000)
             return f"{h:02d}:{m:02d}:{s_:02d},{ms:03d}"
         with open(os.path.splitext(out_path)[0] + ".srt", "w", encoding="utf-8") as f:
-            for k, ln in enumerate(lines, 1):
+            for k, ln in enumerate([l for l in lines if not l["opt"].get("drop")], 1):
                 txt = ln["text"].replace("\\N", "\n")
-                nxt = lines[k]["start"] - 0.02 if k < len(lines) else total
+                kept = [l for l in lines if not l["opt"].get("drop")]
+                nxt = kept[k]["start"] - 0.02 if k < len(kept) else total
                 f.write(f"{k}\n{srt_t(ln['start'])} --> {srt_t(min(ln['end'] + 0.3, nxt))}\n{txt}\n\n")
     ass = os.path.join(BUILD, "captions.ass")
     write_ass(E, segs, events, ass, draft=draft)
@@ -815,7 +896,7 @@ def main():
     pad = make_logo_png(E, logo_png)
     t_end = next(sg["start"] for sg in segs if sg["kind"] in ("endcard", "endcard_v4"))
 
-    spans = [(l['start'] - 0.05, l['end'] + 0.1) for l in lines]
+    spans = [(l['start'] - 0.05, l['end'] + 0.1) for l in lines if not l['opt'].get('drop')]
     spans += [(at(by_id, sg, off), at(by_id, sg, off) + d) for sg, off, d in getattr(E, 'DUCK_EXTRA', [])]
     mix = mix_audio(E, by_id, total, narration, spans, words)
     mix = mix[: int(round(total * SR))]

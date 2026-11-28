@@ -281,6 +281,76 @@ def box_thud():
     return reverb(out, wet=0.12, dur=0.5)
 
 
+# 20. Fast keyboard typing (control room)
+def typing(dur=3.0):
+    out = silence(dur)
+    t = 0.02
+    while t < dur - 0.05:
+        n = int(0.025 * SR)
+        x = bp(rng.standard_normal(n), 1500, 7500) * env_exp(n, 0.004, 0.0003)
+        m = int(0.02 * SR)
+        x[:m] += sine(rng.uniform(180, 260), m) * env_exp(m, 0.006, 0.0005) * 0.5
+        out = place(out, pan(x, rng.uniform(-0.4, 0.4)), t, rng.uniform(0.5, 1.0))
+        t += rng.uniform(0.045, 0.12) if rng.uniform() > 0.12 else rng.uniform(0.15, 0.3)
+    return reverb(out, wet=0.12, dur=0.5)
+
+
+# 21. Control-room alarm beeps (two-tone, urgent but not cartoonish)
+def alarm_beeps(n_beeps=6, period=0.32):
+    out = silence(n_beeps * period + 0.4)
+    for k in range(n_beeps):
+        f = 1180 if k % 2 == 0 else 880
+        n = int(0.14 * SR)
+        x = 0.7 * square(f, n, kmax=7) + 0.3 * sine(f, n)
+        x = lp(x, 5000) * env_adsr(n, 0.004, 0.02, 0.85, 0.02)
+        out = place(out, pan(x, 0.15), k * period, 0.8)
+    return reverb(out, wet=0.18, dur=0.7)
+
+
+# 22. Computer error (descending two-tone + low buzz)
+def computer_error():
+    out = silence(1.2)
+    for k, (f, t0) in enumerate([(523, 0.0), (392, 0.16)]):
+        n = int(0.22 * SR)
+        x = 0.6 * square(f, n, kmax=9) + 0.4 * sine(f, n)
+        x = lp(x, 4000) * env_adsr(n, 0.004, 0.04, 0.8, 0.05)
+        out = place(out, x, t0, 0.8)
+    n = int(0.45 * SR)
+    buzz = saw(np.full(n, 110.0), n) * env_adsr(n, 0.01, 0.05, 0.7, 0.2)
+    out = place(out, lp(buzz, 1500), 0.32, 0.35)
+    return reverb(out, wet=0.12, dur=0.6)
+
+
+# 23. Office applause (staff clapping as the courier departs)
+def applause(dur=4.5, people=18):
+    out = silence(dur)
+    for pidx in range(people):
+        rate = rng.uniform(3.5, 5.5)
+        p = rng.uniform(-0.8, 0.8)
+        g = rng.uniform(0.3, 1.0)
+        t = rng.uniform(0, 0.4)
+        lo, hi = rng.uniform(700, 1200), rng.uniform(2500, 5000)
+        while t < dur - 0.1:
+            n = int(0.03 * SR)
+            c = bp(rng.standard_normal(n), lo, hi) * env_exp(n, 0.007, 0.0005)
+            out = place(out, pan(c, p), t, g * rng.uniform(0.6, 1.0))
+            t += 1 / rate * rng.uniform(0.85, 1.15)
+    n = len(out)
+    out *= env_adsr(n, 0.35, 0.1, 1.0, 1.2)[:, None]
+    return reverb(out, wet=0.3, dur=1.2)
+
+
+# 24. Luxury riser into the VIP reveal
+def riser(dur=1.6):
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    x = noise(dur, "white", rng)
+    fc = np.geomspace(400, 9000, n)
+    y = tv_lowpass(x, fc) * (t / dur) ** 2.2
+    y += 0.25 * sine(np.geomspace(220, 1760, n), n) * (t / dur) ** 3
+    return reverb(pan(y, np.linspace(-0.5, 0.5, n)), wet=0.35, dur=1.4)
+
+
 # 18. Huge hit (for the epic -> cut moment)
 def impact():
     n = int(1.8 * SR)
@@ -310,3 +380,8 @@ if __name__ == "__main__":
     save("room_rural", room_rural(), -28)
     save("impact", impact(), -1)
     save("box_thud", box_thud(), -2)
+    save("typing", typing(), -4)
+    save("alarm_beeps", alarm_beeps(), -3)
+    save("computer_error", computer_error(), -2)
+    save("applause", applause(), -3)
+    save("riser", riser(), -3)

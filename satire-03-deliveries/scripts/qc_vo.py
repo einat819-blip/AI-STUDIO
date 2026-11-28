@@ -14,7 +14,7 @@ import soundfile as sf
 spec = importlib.util.spec_from_file_location("e", sys.argv[1])
 E = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(E)
-W = json.load(open("edit/narration_words.json", encoding="utf-8"))
+W = json.load(open(getattr(E, "NARRATION_WORDS", "edit/narration_words.json"), encoding="utf-8"))
 t, starts = 0, {}
 for s in E.SEGMENTS:
     d = (s["tout"] - s["tin"]) if s["kind"] == "clip" else s["dur"]
@@ -26,6 +26,8 @@ prev = None
 worst = 99
 print(f"{'#':>2} {'start':>6} {'end':>6} {'gap':>5} {'VO/bed':>7}  text")
 for i, (seg, off, text, hl, opt) in enumerate(E.VO):
+    if opt.get("drop"):
+        continue
     L = W["lines"][i]
     a = starts[seg] + off
     b = a + L[-1]["end"] - L[0]["start"]
