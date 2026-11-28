@@ -4,6 +4,8 @@ Steps:
   1. Fonts: Heebo and Rubik from npm (@fontsource), Hebrew + Latin subsets merged into TTF.
   2. Source clips: linked from ../source as .work/src/v1..v5.mp4.
   3. Audio: music from ../audio/music and sound effects from .work/sfx converted to 48 kHz WAV.
+  4. Voice: the ElevenLabs take in ../audio/vo split into one clip per line (vo_split.py),
+     with word timings that timeline.py uses for the cuts and the captions.
 
 Sound effects are Epidemic Sound files licensed through Higgsfield and are not stored in
 the repository. Download them again with the Higgsfield tools (download_sound_effect)
@@ -113,8 +115,15 @@ def audio():
             print(f'  {n}: {SFX_IDS[n]}')
 
 
+def voice():
+    take = os.path.join(ROOT, 'audio', 'vo', 'danit_take.mp3')
+    if os.path.exists(take):
+        run([sys.executable, os.path.join(HERE, 'vo_split.py'), take,
+             os.path.join(ROOT, 'audio', 'vo', 'words.json'), WORK])
+
+
 if __name__ == '__main__':
     os.makedirs(WORK, exist_ok=True)
-    fonts(); icons(); sources(); audio()
+    fonts(); icons(); sources(); audio(); voice()
     os.makedirs(os.path.join(WORK, 'build'), exist_ok=True)
     print('\nThen: python3 audio.py && python3 video.py <out.mp4>')

@@ -2,7 +2,26 @@
 # Output 1080x1920 at 30 fps. Source clips are 24 fps and are sampled frame-accurately
 # (no interpolation, faces are never re-synthesised).
 # TIMING IS PROVISIONAL until the voice files arrive: dialogue word times are placeholders.
-import random
+import json, os, random
+
+_WORK = os.environ.get('AINATI_WORK', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.work'))
+try:
+    VO = json.load(open(os.path.join(_WORK, 'vo', 'lines.json')))
+except FileNotFoundError:
+    VO = {}
+VO_PLACE = {}                # slot -> edit time where its clip starts
+
+
+def vo_dur(slot, fallback):
+    return VO[slot]['dur'] if slot in VO else fallback
+
+
+def vo_words(slot, t0, fallback):
+    """Word start times on the edit timeline: from the recording when we have it, else the placeholder."""
+    if slot not in VO:
+        return fallback
+    VO_PLACE[slot] = t0
+    return [t0 + w[1] for w in VO[slot]['words']]
 
 FPS = 30
 SRC_FPS = 24
@@ -37,12 +56,15 @@ V1_IN = 1.90                 # clip 1 start
 V1_BLINK = 7.71              # eyes closed: the cut to clip 2 hides here
 CUT_A = f30(V1_BLINK - V1_IN)            # 6.10  clip 1 -> clip 2 (matched framing)
 TYPE1 = char_times(T1, 0.10, 1.25, 11)
-SELECT_AT = 4.50
-CLEAR_AT = 4.62
-TYPE2 = char_times(T2, 4.66, 5.50, 12)
-PUSH1 = (4.50, CUT_A)        # slow push on clip 1 while the lion prompt is typed
-ENTER1 = 7.00                # after 1.5 s of reading
-REVEAL = (7.06, 7.66)        # pull back from her face, the lion is revealed
+D1A_T, D1B_T = 2.00, 3.55   # "אלגנטית?" while she looks up, "התחלת טוב." on the smirk to camera
+D1_W = vo_words('d1a', D1A_T, [2.00]) + vo_words('d1b', D1B_T, [3.65, 3.88])
+D1_END = (D1B_T + vo_dur('d1b', 0.9))
+SELECT_AT = D1_END + 0.08
+CLEAR_AT = SELECT_AT + 0.12
+TYPE2 = char_times(T2, CLEAR_AT + 0.04, CLEAR_AT + 0.88, 12)
+PUSH1 = (SELECT_AT, CUT_A)   # slow push on clip 1 while the lion prompt is typed
+ENTER1 = TYPE2[-1] + 1.50    # after 1.5 s of reading
+REVEAL = (ENTER1 + 0.06, ENTER1 + 0.66)   # pull back from her face, the lion is revealed
 
 # ------------------------------------------------------------------ S2 lion
 V2_IN = 0.30
@@ -52,7 +74,12 @@ V2_ROAR_END = V2_IN + (CUT_B - CUT_A)
 ROAR_ON = REVEAL[0] + 0.03
 V2B_IN = 5.55                # she turns from the lion to the lens
 V2B_TURN = 8.00              # play forward to here, then hold by running back
-P2_SHOW = CUT_B + 1.80
+D2A_T = CUT_B + 0.25         # "אריה?" as she settles on the lens
+D2_W = vo_words('d2a', D2A_T, [CUT_B + 0.30])
+D2B_T = D2A_T + vo_dur('d2a', 0.45) + 0.25   # a dry beat before "איזה מקורי"
+D2_W += vo_words('d2b', D2B_T, [CUT_B + 0.74, CUT_B + 0.93])
+D2_END = D2B_T + vo_dur('d2b', 0.9)
+P2_SHOW = D2_END + 0.16      # the next prompt only after the lion punch has landed
 TYPE3 = char_times(T3, P2_SHOW + 0.08, P2_SHOW + 0.78, 13)
 ENTER2 = TYPE3[-1] + 1.50    # 1.5 s of reading
 CUT_C = f30(ENTER2 + 0.15)
@@ -81,7 +108,7 @@ PIX_OUT = PIX_SWAP = PIX_IN = 0.0
 # ------------------------------------------------------------------ new ending: the AI resigns
 V3_TAIL = 0.20               # her open palm right after the erase: the cut on action into clip 6
 VS6 = f30(S3E_T + V3_TAIL)   # clip 6: both palms up
-NOTIF_T = VS6 + 2.35         # alert sound and the resignation notice
+NOTIF_T = VS6 + 2.35         # alert sound and the resignation notice (kept after her line, see below)
 MUSIC_STOP = VS6 + 5.20      # the music drops out before the punch
 PUSH = (f30(VS6 + 6.45), f30(VS6 + 6.85))   # push in on her eyes, into the close-up
 VS7 = PUSH[1]                # clip 7: the personal close-up
@@ -107,24 +134,39 @@ SERVICES = ["סרטים אישיים", "פרסומות", "הזמנות לאיר�
 CTA_PILL = "יש לכם רעיון? בואו נדבר."
 SOCIALS = [("instagram", "@ainati_studios"), ("facebook", "AI NATI STUDIOS"), ("tiktok", "@einat.cohen.elyas")]
 
-# ------------------------------------------------------------------ dialogue (placeholders until the voice)
+# ------------------------------------------------------------------ dialogue (word times from the recording, placeholders where a line is missing)
 # (slot, [[(word, colour, start)]], end, style)   colour: None | "teal" | "gold" | "coral"
+D3A_W = vo_words('d3a', LOOK_T + 0.08, [LOOK_T + 0.08, LOOK_T + 0.38])
+D3B_W = vo_words('d3b', YEHUDA_T, [YEHUDA_T, YEHUDA_T + 0.27, YEHUDA_T + 0.43, YEHUDA_T + 0.55])
+D4_W = vo_words('d4', VS6 + 0.15, [VS6 + 0.15, VS6 + 0.38, VS6 + 0.85, VS6 + 0.98, VS6 + 1.13, VS6 + 1.40, VS6 + 1.55])
+D4_END = VS6 + 0.15 + vo_dur('d4', 2.0)
+D7A_W = vo_words('d7a', VS7 + 0.40, [VS7 + 0.40, VS7 + 0.55, VS7 + 0.72, VS7 + 0.97])
+D7A_END = VS7 + 0.40 + vo_dur('d7a', 1.3)
+D7B_T = max(VS7 + 1.90, D7A_END + 0.12)
+BRAND_W = vo_words('brand', SLIDE['logo'] + 0.05, [])
+# not in the current take: captions only, at the placeholder timing, until the recording arrives
+D6_W = vo_words('d6', VS6 + 4.45, [VS6 + 4.45, VS6 + 4.65, VS6 + 5.35, VS6 + 5.52, VS6 + 5.72, VS6 + 5.85])
+if 'd6' in VO:
+    MUSIC_STOP = D6_W[2] - 0.15   # the music drops out right before "אני קשה עם ספקים."
+D7B_W = vo_words('d7b', D7B_T, [D7B_T, D7B_T + 0.35, D7B_T + 0.50, D7B_T + 0.85, D7B_T + 1.15])
+D7B_END = max(VS7 + 3.80, D7B_T + vo_dur('d7b', 0) + 0.10)
+
 DIALOGUE = [
-    ("d1", [[("אלגנטית?", "teal", 2.00), ("התחלת", None, 3.65), ("טוב.", None, 3.88)]], 4.42, None),
-    ("d2", [[("אריה?", None, CUT_B + 0.30), ("איזה", None, CUT_B + 0.74), ("מקורי…", "teal", CUT_B + 0.93)]], CUT_B + 1.60, None),
-    ("d3a", [[("תמחק,", "coral", LOOK_T + 0.08), ("תמחק!", "coral", LOOK_T + 0.38)]], YEHUDA_T - 0.10, "shake"),
-    ("d3b", [[("יהודה", "gold", YEHUDA_T), ("רואה", None, YEHUDA_T + 0.27),
-              ("את", None, YEHUDA_T + 0.43), ("זה!", None, YEHUDA_T + 0.55)]], S3E_T + 0.02, None),
-    ("d4", [[("טוב,", None, VS6 + 0.15), ("מספיק!", None, VS6 + 0.38)],
-            [("תן", None, VS6 + 0.85), ("לי", None, VS6 + 0.98), ("לכתוב", None, VS6 + 1.13),
-             ("את", None, VS6 + 1.40), ("התסריט.", "gold", VS6 + 1.55)]], VS6 + 2.15, None),
-    ("d6", [[("מה", None, VS6 + 4.45), ("לעשות?", None, VS6 + 4.65)],
-            [("אני", None, VS6 + 5.35), ("קשה", None, VS6 + 5.52), ("עם", None, VS6 + 5.72), ("ספקים.", "gold", VS6 + 5.85)]],
+    ("d1", [[("אלגנטית?", "teal", D1_W[0]), ("התחלת", None, D1_W[1]), ("טוב.", None, D1_W[2])]], D1_END + 0.15, None),
+    ("d2", [[("אריה?", None, D2_W[0]), ("איזה", None, D2_W[1]), ("מקורי…", "teal", D2_W[2])]], D2_END + 0.15, None),
+    ("d3a", [[("תמחק,", "coral", D3A_W[0]), ("תמחק!", "coral", D3A_W[1])]], YEHUDA_T - 0.10, "shake"),
+    ("d3b", [[("יהודה", "gold", D3B_W[0]), ("רואה", None, D3B_W[1]),
+              ("את", None, D3B_W[2]), ("זה!", None, D3B_W[3])]], S3E_T + 0.02, None),
+    ("d4", [[("טוב,", None, D4_W[0]), ("מספיק!", None, D4_W[1])],
+            [("תן", None, D4_W[2]), ("לי", None, D4_W[3]), ("לכתוב", None, D4_W[4]),
+             ("את", None, D4_W[5]), ("התסריט.", "gold", D4_W[6])]], D4_END + 0.12, None),
+    ("d6", [[("מה", None, D6_W[0]), ("לעשות?", None, D6_W[1])],
+            [("אני", None, D6_W[2]), ("קשה", None, D6_W[3]), ("עם", None, D6_W[4]), ("ספקים.", "gold", D6_W[5])]],
      VS6 + 6.42, None),
-    ("d7a", [[("יש", None, VS7 + 0.40), ("לכם", None, VS7 + 0.55), ("רעיון", "teal", VS7 + 0.72), ("לסרט?", "teal", VS7 + 0.97)]],
-     VS7 + 1.72, None),
-    ("d7b", [[("תשאירו", "teal", VS7 + 1.90), ("את", None, VS7 + 2.25), ("העבודה", None, VS7 + 2.40)],
-             [("הקשה", None, VS7 + 2.75), ("לי.", "teal", VS7 + 3.05)]], VS7 + 3.80, None),
+    ("d7a", [[("יש", None, D7A_W[0]), ("לכם", None, D7A_W[1]), ("רעיון", "teal", D7A_W[2]), ("לסרט?", "teal", D7A_W[3])]],
+     D7A_END + 0.08, None),
+    ("d7b", [[("תשאירו", "teal", D7B_W[0]), ("את", None, D7B_W[1]), ("העבודה", None, D7B_W[2])],
+             [("הקשה", None, D7B_W[3]), ("לי.", "teal", D7B_W[4])]], D7B_END, None),
 ]
 
 # ------------------------------------------------------------------ edit list
@@ -133,7 +175,7 @@ DIALOGUE = [
 SEGMENTS = [
     ("v1", 0.0, CUT_A, ("lin", V1_IN), "s1"),
     ("v2", CUT_A, CUT_B, ("lin", V2_IN), "s2"),
-    ("v2", CUT_B, CUT_C, ("pingpong", V2B_IN, V2B_TURN), "deadpan"),
+    ("v2", CUT_B, CUT_C, ("pingpong", V2B_IN, V2B_TURN, 6.05), "deadpan"),
     ("v3", CUT_C, S3B_T, ("lin", V3_IN), "s3"),
     ("v3", S3B_T, S3C_T, ("rev", HOLD_B), "s3"),
     ("v3", S3C_T, ERASE_T, ("lin", HOLD_A), "s3"),

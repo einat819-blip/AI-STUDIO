@@ -132,8 +132,13 @@ def src_time(fn, t, t0):
     if kind == 'hold':
         return fn[1]
     if kind == 'pingpong':
+        # play forward once, then swing between `lo` and b (she stays on the lens the whole time)
         a, b = fn[1], fn[2]
-        return a + u if u <= b - a else b - (u - (b - a))
+        lo = fn[3] if len(fn) > 3 else a
+        if u <= b - a:
+            return a + u
+        v = (u - (b - a)) % (2 * (b - lo))
+        return b - v if v <= b - lo else lo + (v - (b - lo))
     if kind == 'clamp':
         return min(fn[1] + u, fn[2])
     raise ValueError(kind)

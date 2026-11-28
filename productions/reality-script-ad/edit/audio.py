@@ -1,4 +1,4 @@
-"""Sound design and mix for the AI NATI STUDIOS "reality script" ad, version 5 (the AI resigns).
+"""Sound design and mix for the AI NATI STUDIOS "reality script" ad, version 5 (the AI resigns), with the recorded voice.
 
 Places music cues, sound effects and (when present) the voice files on the timeline,
 ducks the music under every dialogue / voice-over slot, then masters to about -14 LUFS.
@@ -149,21 +149,32 @@ pop = fade(np.repeat((thump * 0.8 + tick * 0.25)[:, None], 2, 1).astype(np.float
 for i, ts in enumerate(SOC_TIMES):
     place(mix, norm_to(pop, -22 + i * 0.8), ts - 0.005)
 
-# voice: dialogue and voice-over slots (files optional until the recordings arrive)
-slots = [(name, lines[0][0][2], t_end) for name, lines, t_end, _ in DIALOGUE]
-for name, t0, t1 in slots:
-    p = f'{SP}/vo/{name}.wav'
-    if os.path.exists(p):
-        place(vo_bus, norm_to(load(p), -17), t0)
-        print('voice placed', name)
-
+# voice: the recorded lines at their places; lines that are not recorded yet keep a ducked, empty slot
 duck = np.ones(N, np.float32)
-for name, t0, t1 in slots:
-    a0, a1 = int((t0 - 0.08) * SR), int((t1 + 0.15) * SR)
-    r = int(0.08 * SR)
-    seg = np.full(a1 - a0, db(-6), np.float32)
-    seg[:r] = np.linspace(1, db(-6), r); seg[-r:] = np.linspace(db(-6), 1, r)
+
+
+def duck_window(t0, t1, depth_db):
+    a0, a1 = max(0, int((t0 - 0.06) * SR)), min(N, int((t1 + 0.14) * SR))
+    if a1 <= a0:
+        return
+    r = min(int(0.07 * SR), (a1 - a0) // 2)
+    seg = np.full(a1 - a0, db(depth_db), np.float32)
+    seg[:r] = np.linspace(1, db(depth_db), r); seg[-r:] = np.linspace(db(depth_db), 1, r)
     duck[a0:a1] = np.minimum(duck[a0:a1], seg)
+
+
+for slot, t0 in VO_PLACE.items():
+    p = f'{SP}/vo/{slot}.wav'
+    v = load(p)
+    place(vo_bus, norm_to(v, -16.5), t0)
+    duck_window(t0, t0 + len(v) / SR, -8)
+    print('voice placed', slot, round(t0, 2), round(len(v) / SR, 2))
+for name, lines, t_end, _ in DIALOGUE:
+    t0 = lines[0][0][2]
+    covered = any(abs(VO_PLACE.get(k, -99) - t0) < 0.25 for k in VO_PLACE)
+    if not covered and not any(VO_PLACE.get(k, -99) <= t0 <= VO_PLACE[k] + VO[k]['dur'] + 0.3 for k in VO_PLACE):
+        duck_window(t0, t_end, -6)
+        print('empty slot kept', name, round(t0, 2), round(t_end, 2))
 mix += music_bus * duck[:, None] + vo_bus
 
 end_f = int(0.25 * SR)
